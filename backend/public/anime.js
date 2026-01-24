@@ -208,7 +208,10 @@ async function renderDetail(data) {
           <h1 class="review-title">${data.title}</h1>
           <span class="review-rating-large">★ ${review.rating}</span>
         </div>
-        <p class="review-oneliner-inline">"${review.oneLiner || ''}"</p>
+        <div class="review-oneliner-container">
+          <p class="review-oneliner-inline">"${review.oneLiner || ''}"</p>
+          <p class="review-author">- ${review.author || ''}</p>
+        </div>
       </div>
     </div>
     

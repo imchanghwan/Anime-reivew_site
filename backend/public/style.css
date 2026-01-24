@@ -208,15 +208,53 @@ a {
   gap: var(--space-lg);
 }
 
+/* 아바타 감싸는 원형 박스 */
+.avatar-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.camera-trigger-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: var(--color-accent); /* 노란색 */
+  border: 2px solid var(--color-white);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-white);
+  cursor: pointer;
+}
+
+.camera-trigger-btn:hover {
+  /* 호버 시 살짝 더 어두운 느낌을 주려면 브라이트니스 조정 */
+  filter: brightness(0.9);
+  transform: scale(1.05);
+}
+
+/* 오른쪽 설명 텍스트 */
+.profile-info-text h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937; /* 진한 회색 (완전 검정보다 부드러움) */
+}
+
+.profile-info-text p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #6b7280; /* 부드러운 회색 */
+}
+
 .user-avatar.large {
   width: 80px;
   height: 80px;
   font-size: 2rem;
   flex-shrink: 0;
-}
-
-.profile-avatar-section .form-group {
-  flex: 1;
 }
 
 .danger-section {
@@ -872,12 +910,29 @@ a {
   flex-shrink: 0;
 }
 
+.review-oneliner-container {
+  display: flex;
+  flex-direction: column; /* 세로로 나열 (줄바꿈) */
+  width: 100%;
+  margin: 10px 0;
+}
+
 .review-oneliner-inline {
-  font-size: 1.125rem;
+  font-size: 1.5rem;
   font-weight: 500;
   color: var(--color-text-secondary);
   font-style: italic;
   margin-top: var(--space-sm);
+}
+
+.review-author {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  text-align: right;
+  margin-right: -30px; 
+  white-space: nowrap;
 }
 
 /* 작성자 메타 */

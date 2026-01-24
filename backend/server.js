@@ -6,11 +6,15 @@ const express = require('express');
 const path = require('path');
 const db = require('./database');
 
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' }); // 파일이 저장될 폴더
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static('uploads'));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'main.html'));
@@ -76,10 +80,15 @@ app.post('/api/login', (req, res) => {
 });
 
 // PUT /api/users/:id - 프로필 수정
-app.put('/api/users/:id', (req, res) => {
+app.put('/api/users/:id', upload.single('profileImage'), (req, res) => {
   const { id } = req.params;
-  const { nickname, profileImage, currentPassword, newPassword } = req.body;
-  
+  const { nickname, currentPassword, newPassword } = req.body;
+ 
+  let profileImagePath = req.body.profileImage; // 파일 미변경 시 기존 URL 유지용
+  if (req.file) {
+    profileImagePath = `/uploads/${req.file.filename}`;
+  }
+
   // 비밀번호 변경 시 현재 비밀번호 확인
   if (newPassword) {
     db.get(`SELECT password FROM users WHERE id = ?`, [id], (err, row) => {
@@ -91,20 +100,20 @@ app.put('/api/users/:id', (req, res) => {
       
       db.run(
         `UPDATE users SET nickname = ?, profile_image = ?, password = ? WHERE id = ?`,
-        [nickname, profileImage || '', newPassword, id],
+        [nickname, profileImagePath || '', newPassword, id],
         function(err) {
           if (err) return res.status(500).json({ error: err.message });
-          res.json({ message: '수정 완료' });
+          res.json({ message: '수정 완료', profileImage: profileImagePath });
         }
       );
     });
   } else {
     db.run(
       `UPDATE users SET nickname = ?, profile_image = ? WHERE id = ?`,
-      [nickname, profileImage || '', id],
+      [nickname, profileImagePath || '', id],
       function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: '수정 완료' });
+        res.json({ message: '수정 완료', profileImage: profileImagePath });
       }
     );
   }
