@@ -6,15 +6,11 @@ const express = require('express');
 const path = require('path');
 const db = require('./database');
 
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' }); // 파일이 저장될 폴더
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static('uploads'));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'main.html'));
@@ -80,15 +76,10 @@ app.post('/api/login', (req, res) => {
 });
 
 // PUT /api/users/:id - 프로필 수정
-app.put('/api/users/:id', upload.single('profileImage'), (req, res) => {
+app.put('/api/users/:id', (req, res) => {
   const { id } = req.params;
-  const { nickname, currentPassword, newPassword } = req.body;
- 
-  let profileImagePath = req.body.profileImage; // 파일 미변경 시 기존 URL 유지용
-  if (req.file) {
-    profileImagePath = `/uploads/${req.file.filename}`;
-  }
-
+  const { nickname, profileImage, currentPassword, newPassword } = req.body;
+  
   // 비밀번호 변경 시 현재 비밀번호 확인
   if (newPassword) {
     db.get(`SELECT password FROM users WHERE id = ?`, [id], (err, row) => {
@@ -100,20 +91,20 @@ app.put('/api/users/:id', upload.single('profileImage'), (req, res) => {
       
       db.run(
         `UPDATE users SET nickname = ?, profile_image = ?, password = ? WHERE id = ?`,
-        [nickname, profileImagePath || '', newPassword, id],
+        [nickname, profileImage || '', newPassword, id],
         function(err) {
           if (err) return res.status(500).json({ error: err.message });
-          res.json({ message: '수정 완료', profileImage: profileImagePath });
+          res.json({ message: '수정 완료' });
         }
       );
     });
   } else {
     db.run(
       `UPDATE users SET nickname = ?, profile_image = ? WHERE id = ?`,
-      [nickname, profileImagePath || '', id],
+      [nickname, profileImage || '', id],
       function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: '수정 완료', profileImage: profileImagePath });
+        res.json({ message: '수정 완료' });
       }
     );
   }
@@ -426,52 +417,89 @@ app.get('/api/anime/:id/review', (req, res) => {
   // 조회수 증가
   db.run(`UPDATE reviews SET view_count = view_count + 1 WHERE anime_id = ?`, [id]);
   
-  db.get(`SELECT id, title, cover_image as coverImage FROM anime WHERE id = ?`, [id], (err, anime) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!anime) return res.status(404).json({ error: 'Anime not found' });
-    
-    db.get(
-      `SELECT r.id, r.anime_id as animeId, r.user_id as userId, r.author, r.tier, r.rating, 
-              r.one_liner as oneLiner, r.content, r.view_count as viewCount, r.created_at as createdAt,
-              u.nickname, u.profile_image as profileImage
-       FROM reviews r
-       LEFT JOIN users u ON r.user_id = u.id
-       WHERE r.anime_id = ?`,
-      [id],
-      (err, review) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        if (!review) {
-          return res.json({ ...anime, review: null });
+  db.get(
+    `SELECT a.id, a.title, a.cover_image as coverImage, a.parent_id as parentId,
+            p.title as parentTitle
+     FROM anime a
+     LEFT JOIN parent_anime p ON a.parent_id = p.id
+     WHERE a.id = ?`, 
+    [id], 
+    (err, anime) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!anime) return res.status(404).json({ error: 'Anime not found' });
+      
+      // 관련 애니 조회 (같은 부모의 다른 자식들)
+      const fetchRelatedAnime = (callback) => {
+        if (!anime.parentId) {
+          callback([]);
+          return;
         }
         
-        // 추천수 조회
-        db.get(
-          `SELECT 
-            SUM(CASE WHEN vote_type = 'up' THEN 1 ELSE 0 END) as upCount,
-            SUM(CASE WHEN vote_type = 'down' THEN 1 ELSE 0 END) as downCount
-           FROM review_votes WHERE review_id = ?`,
-          [review.id],
-          (err, votes) => {
-            // 댓글수 조회
-            db.get(`SELECT COUNT(*) as count FROM comments WHERE review_id = ?`, [review.id], (err, commentCount) => {
-              res.json({
-                ...anime,
-                review: {
-                  ...review,
-                  author: review.nickname || review.author || '익명',
-                  profileImage: review.profileImage || '',
-                  upCount: votes?.upCount || 0,
-                  downCount: votes?.downCount || 0,
-                  commentCount: commentCount?.count || 0
-                }
-              });
-            });
+        db.all(
+          `SELECT a.id, a.title, a.cover_image as coverImage,
+                  r.tier, r.rating, r.one_liner as oneLiner
+           FROM anime a
+           LEFT JOIN reviews r ON a.id = r.anime_id
+           WHERE a.parent_id = ? AND a.id != ?
+           ORDER BY a.id`,
+          [anime.parentId, id],
+          (err, rows) => {
+            callback(rows || []);
           }
         );
-      }
-    );
-  });
+      };
+      
+      fetchRelatedAnime((relatedAnime) => {
+        db.get(
+          `SELECT r.id, r.anime_id as animeId, r.user_id as userId, r.is_anonymous as isAnonymous,
+                  r.tier, r.rating, r.one_liner as oneLiner, r.content, 
+                  r.view_count as viewCount, r.created_at as createdAt,
+                  u.nickname, u.profile_image as profileImage
+           FROM reviews r
+           LEFT JOIN users u ON r.user_id = u.id
+           WHERE r.anime_id = ?`,
+          [id],
+          (err, review) => {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            if (!review) {
+              return res.json({ ...anime, review: null, relatedAnime });
+            }
+            
+            // 추천수 조회
+            db.get(
+              `SELECT 
+                SUM(CASE WHEN vote_type = 'up' THEN 1 ELSE 0 END) as upCount,
+                SUM(CASE WHEN vote_type = 'down' THEN 1 ELSE 0 END) as downCount
+               FROM review_votes WHERE review_id = ?`,
+              [review.id],
+              (err, votes) => {
+                // 댓글수 조회
+                db.get(`SELECT COUNT(*) as count FROM comments WHERE review_id = ?`, [review.id], (err, commentCount) => {
+                  // 익명 처리
+                  const authorName = review.isAnonymous ? '익명' : (review.nickname || '익명');
+                  const authorImage = review.isAnonymous ? '' : (review.profileImage || '');
+                  
+                  res.json({
+                    ...anime,
+                    relatedAnime,
+                    review: {
+                      ...review,
+                      author: authorName,
+                      profileImage: authorImage,
+                      upCount: votes?.upCount || 0,
+                      downCount: votes?.downCount || 0,
+                      commentCount: commentCount?.count || 0
+                    }
+                  });
+                });
+              }
+            );
+          }
+        );
+      });
+    }
+  );
 });
 
 // GET /api/reviews/:id/check-has-review - 리뷰 존재 여부 체크
@@ -483,9 +511,37 @@ app.get('/api/anime/:id/check-review', (req, res) => {
   });
 });
 
-// POST /api/reviews - 리뷰 작성 (1개만 가능)
+// GET /api/parent-anime - 부모 애니 목록
+app.get('/api/parent-anime', (req, res) => {
+  db.all(`SELECT id, title FROM parent_anime ORDER BY title`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows || []);
+  });
+});
+
+// POST /api/parent-anime - 부모 애니 추가
+app.post('/api/parent-anime', (req, res) => {
+  const { title } = req.body;
+  if (!title) return res.status(400).json({ error: 'title 필수' });
+  
+  db.run(`INSERT INTO parent_anime (title) VALUES (?)`, [title], function(err) {
+    if (err) {
+      if (err.message.includes('UNIQUE')) {
+        return res.status(400).json({ error: '이미 존재하는 시리즈입니다' });
+      }
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(201).json({ id: this.lastID, title });
+  });
+});
+
+// POST /api/reviews - 리뷰 작성 (로그인 필수, 익명 옵션)
 app.post('/api/reviews', (req, res) => {
-  const { animeId, animeTitle, animeCoverImage, author, password, tier, rating, oneLiner, content, categories, userId } = req.body;
+  const { animeId, animeTitle, animeCoverImage, parentId, tier, rating, oneLiner, content, categories, userId, isAnonymous } = req.body;
+  
+  if (!userId) {
+    return res.status(401).json({ error: '로그인이 필요합니다' });
+  }
   
   if (!tier || rating === undefined) {
     return res.status(400).json({ error: 'tier, rating 필수' });
@@ -498,12 +554,9 @@ app.post('/api/reviews', (req, res) => {
         return res.status(400).json({ error: '이미 리뷰가 존재하는 애니입니다' });
       }
       
-      const authorName = userId ? null : (author || '익명');
-      const pwd = userId ? null : (password || '');
-      
       db.run(
-        `INSERT INTO reviews (anime_id, user_id, author, password, tier, rating, one_liner, content) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [animeIdToUse, userId || null, authorName, pwd, tier, rating, oneLiner || '', content || ''],
+        `INSERT INTO reviews (anime_id, user_id, is_anonymous, tier, rating, one_liner, content) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [animeIdToUse, userId, isAnonymous ? 1 : 0, tier, rating, oneLiner || '', content || ''],
         function(err) {
           if (err) {
             if (err.message.includes('UNIQUE')) {
@@ -521,8 +574,8 @@ app.post('/api/reviews', (req, res) => {
     insertReview(animeId);
   } else if (animeTitle) {
     db.run(
-      `INSERT INTO anime (title, cover_image) VALUES (?, ?)`,
-      [animeTitle, animeCoverImage || ''],
+      `INSERT INTO anime (title, cover_image, parent_id) VALUES (?, ?, ?)`,
+      [animeTitle, animeCoverImage || '', parentId || null],
       function(err) {
         if (err) return res.status(500).json({ error: err.message });
         const newAnimeId = this.lastID;
