@@ -18,12 +18,12 @@ function clearUser() {
   localStorage.removeItem('anilog_user');
 }
 
-// API
+// API - FormData로 파일 업로드
 async function updateProfile(id, formData) {
   try {
     const res = await fetch(`${API}/users/${id}`, {
       method: 'PUT',
-      body: formData
+      body: formData // FormData는 Content-Type 자동 설정
     });
     return await res.json();
   } catch (e) {
@@ -77,6 +77,8 @@ function handleLogout() {
 }
 
 // 프로필 페이지 렌더링
+let selectedImageFile = null;
+
 function renderProfilePage() {
   const container = document.getElementById('profile-page');
   if (!container) return;
@@ -90,7 +92,7 @@ function renderProfilePage() {
   
   const initial = user.nickname.charAt(0).toUpperCase();
   
-  container.innerHTML += `
+  container.innerHTML = `
     <h1 class="page-title">마이페이지</h1>
     
     <!-- 프로필 정보 섹션 -->
@@ -102,14 +104,14 @@ function renderProfilePage() {
             <div class="user-avatar large" id="preview-avatar">
               ${user.profileImage ? `<img src="${user.profileImage}" alt="">` : initial}
             </div>
-            
             <button type="button" class="camera-trigger-btn" onclick="document.getElementById('profileImageInput').click()">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
+                <circle cx="12" cy="13" r="3"></circle>
+              </svg>
             </button>
-            
             <input type="file" id="profileImageInput" accept="image/*" style="display: none;">
           </div>
-
           <div class="profile-info-text">
             <h4>프로필 이미지</h4>
             <p>JPG, PNG. 최대 3.5MB.</p>
@@ -153,31 +155,44 @@ function renderProfilePage() {
     <a href="/" class="back-btn">← 메인으로</a>
   `;
   
-  // 프로필 이미지 미리보기
-  // 1. 먼저 HTML을 삽입합니다.
-  // 2. 삽입 직후에 요소를 찾아서 리스너를 겁니다.
-  const fileInput = document.getElementById('profileImageInput');
-  const preview = document.getElementById('preview-avatar');
-
-  if (fileInput) {
-    fileInput.onchange = (e) => { // addEventListener 대신 onchange를 쓰면 중복 등록 방지에 유리합니다.
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          // 이미지가 있으면 img 태그로 교체, 스타일은 CSS 클래스(preview-circle)가 잡아줍니다.
-          preview.innerHTML = `<img src="${event.target.result}" alt="미리보기">`;
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-  }
+  // 파일 선택 이벤트
+  document.getElementById('profileImageInput').addEventListener('change', handleImageSelect);
   
   // 프로필 저장
   document.getElementById('profile-form').addEventListener('submit', handleProfileSubmit);
-    
+  
   // 비밀번호 변경
   document.getElementById('password-form').addEventListener('submit', handlePasswordSubmit);
+}
+
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  // 파일 크기 체크 (3.5MB)
+  if (file.size > 3.5 * 1024 * 1024) {
+    alert('파일 크기는 3.5MB 이하여야 합니다.');
+    e.target.value = '';
+    return;
+  }
+  
+  // 파일 타입 체크
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    alert('JPG, PNG, GIF, WEBP 파일만 허용됩니다.');
+    e.target.value = '';
+    return;
+  }
+  
+  selectedImageFile = file;
+  
+  // 미리보기
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const preview = document.getElementById('preview-avatar');
+    preview.innerHTML = `<img src="${event.target.result}" alt="">`;
+  };
+  reader.readAsDataURL(file);
 }
 
 async function handleProfileSubmit(e) {
@@ -185,28 +200,25 @@ async function handleProfileSubmit(e) {
   
   const user = getUser();
   const nickname = document.getElementById('nickname').value;
-  const fileInput = document.getElementById('profileImageInput'); 
-  const file = fileInput.files[0];
-
+  
   const formData = new FormData();
   formData.append('nickname', nickname);
-
-  if (file) {
-    formData.append('profileImage', file); 
+  
+  if (selectedImageFile) {
+    formData.append('profileImage', selectedImageFile);
   } else {
-    // 파일을 새로 선택 안 했다면 기존 이미지 경로를 그대로 보냄
-    formData.append('profileImage', user.profileImage);
+    // 기존 이미지 유지
+    formData.append('existingProfileImage', user.profileImage || '');
   }
-
+  
   const result = await updateProfile(user.id, formData);
   
-  if (result.message === '수정 완료') {
+  if (result.message) {
+    // 로컬 유저 정보 업데이트
     user.nickname = nickname;
-    // 중요: 서버에서 새로 생성된 파일 경로(result.profileImage)를 저장
-    if (result.profileImage) {
-      user.profileImage = result.profileImage;
-    }
+    user.profileImage = result.profileImage || user.profileImage;
     setUser(user);
+    selectedImageFile = null;
     renderAuthHeader();
     alert('프로필이 수정되었습니다.');
   } else {
@@ -222,21 +234,21 @@ async function handlePasswordSubmit(e) {
   const newPassword = document.getElementById('newPassword').value;
   const newPasswordConfirm = document.getElementById('newPasswordConfirm').value;
   
+  // 비밀번호 2중 체크
   if (newPassword !== newPasswordConfirm) {
     alert('새 비밀번호가 일치하지 않습니다.');
     return;
   }
   
-  // 비밀번호 변경 시에도 FormData 사용 (서버 미들웨어 호환성 때문)
   const formData = new FormData();
   formData.append('nickname', user.nickname);
-  formData.append('profileImage', user.profileImage); // 기존 이미지 유지
+  formData.append('existingProfileImage', user.profileImage || '');
   formData.append('currentPassword', currentPassword);
   formData.append('newPassword', newPassword);
-
+  
   const result = await updateProfile(user.id, formData);
   
-  if (result.message === '수정 완료') {
+  if (result.message) {
     alert('비밀번호가 변경되었습니다.');
     document.getElementById('password-form').reset();
   } else {

@@ -102,6 +102,30 @@ a {
 .header-right {
   display: flex;
   align-items: center;
+  gap: var(--space-md);
+}
+
+.write-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-white);
+  background: linear-gradient(135deg, var(--color-accent) 0%, #f97316 100%);
+  border-radius: var(--radius-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.write-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+#header-auth {
+  display: flex;
+  align-items: center;
   gap: var(--space-sm);
 }
 
@@ -208,46 +232,9 @@ a {
   gap: var(--space-lg);
 }
 
-/* 아바타 감싸는 원형 박스 */
 .avatar-container {
   position: relative;
   flex-shrink: 0;
-}
-
-.camera-trigger-btn {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  background: var(--color-accent); /* 노란색 */
-  border: 2px solid var(--color-white);
-  border-radius: 50%;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-white);
-  cursor: pointer;
-}
-
-.camera-trigger-btn:hover {
-  /* 호버 시 살짝 더 어두운 느낌을 주려면 브라이트니스 조정 */
-  filter: brightness(0.9);
-  transform: scale(1.05);
-}
-
-/* 오른쪽 설명 텍스트 */
-.profile-info-text h4 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1f2937; /* 진한 회색 (완전 검정보다 부드러움) */
-}
-
-.profile-info-text p {
-  margin: 4px 0 0;
-  font-size: 0.85rem;
-  color: #6b7280; /* 부드러운 회색 */
 }
 
 .user-avatar.large {
@@ -255,6 +242,49 @@ a {
   height: 80px;
   font-size: 2rem;
   flex-shrink: 0;
+}
+
+.camera-trigger-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-accent);
+  color: var(--color-white);
+  border: 2px solid var(--color-white);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.camera-trigger-btn:hover {
+  transform: scale(1.1);
+  background-color: #f97316;
+}
+
+.profile-info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-info-text h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.profile-info-text p {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.profile-avatar-section .form-group {
+  flex: 1;
 }
 
 .danger-section {
@@ -303,7 +333,7 @@ a {
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
   width: 100%;
-  max-width: 400px;
+  max-width: 480px;
   box-shadow: var(--shadow-lg);
 }
 
@@ -726,19 +756,27 @@ a {
 }
 
 /* ========================================
-   Write Section (리뷰 작성)
+   Write Page (리뷰 작성)
 ======================================== */
-.write-section {
-  margin-top: var(--space-2xl);
-  padding-top: var(--space-2xl);
-  border-top: 1px solid var(--color-border);
+.write-page {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.page-title {
+  text-align: center;
+  margin-bottom: var(--space-xl);
 }
 
 .review-form {
-  max-width: 600px;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  background-color: var(--color-white);
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .form-group {
@@ -798,6 +836,37 @@ a {
   border-radius: var(--radius-sm);
 }
 
+.parent-select-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.parent-select-row select {
+  flex: 1;
+}
+
+.add-parent-btn {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-accent);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast);
+}
+
+.add-parent-btn:hover {
+  background-color: var(--color-bg);
+}
+
+.form-hint {
+  font-size: 0.8125rem;
+  margin-top: var(--space-xs);
+}
+
 .checkbox-group {
   display: flex;
   flex-wrap: wrap;
@@ -824,6 +893,42 @@ a {
   accent-color: var(--color-accent);
 }
 
+.anonymous-check {
+  padding: var(--space-md);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.guest-fields {
+  padding: var(--space-md);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.cancel-btn {
+  padding: var(--space-md) var(--space-xl);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.cancel-btn:hover {
+  background-color: var(--color-border);
+}
+
 .submit-btn {
   padding: var(--space-md) var(--space-xl);
   font-size: 1rem;
@@ -834,7 +939,6 @@ a {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-  align-self: flex-start;
 }
 
 .submit-btn:hover {
@@ -844,6 +948,22 @@ a {
 
 .submit-btn:active {
   transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .cancel-btn,
+  .submit-btn {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 /* ========================================
@@ -863,6 +983,78 @@ a {
   background-color: var(--color-white);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
+}
+
+/* Related Anime Section */
+.related-anime-section {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg);
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.related-anime-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-md);
+}
+
+.related-anime-list {
+  display: flex;
+  gap: var(--space-md);
+  overflow-x: auto;
+  padding-bottom: var(--space-sm);
+}
+
+.related-anime-card {
+  flex-shrink: 0;
+  width: 100px;
+  text-decoration: none;
+  transition: transform var(--transition-fast);
+}
+
+.related-anime-card:hover {
+  transform: translateY(-4px);
+}
+
+.related-anime-poster {
+  position: relative;
+  width: 100px;
+  height: 140px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.related-anime-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.related-tier {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  font-size: 0.625rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+}
+
+.related-anime-name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-align: center;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .review-poster {
@@ -910,29 +1102,29 @@ a {
   flex-shrink: 0;
 }
 
-.review-oneliner-container {
+.review-oneliner-box {
   display: flex;
-  flex-direction: column; /* 세로로 나열 (줄바꿈) */
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+.review-oneliner-text {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  text-align: left;
   width: 100%;
-  margin: 10px 0;
 }
 
-.review-oneliner-inline {
-  font-size: 1.5rem;
+.review-oneliner-author {
+  font-size: 0.9375rem;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   font-style: italic;
-  margin-top: var(--space-sm);
-}
-
-.review-author {
-  font-size: 1.5rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  font-style: italic;
-  text-align: right;
-  margin-right: -30px; 
-  white-space: nowrap;
+  align-self: flex-end;
 }
 
 /* 작성자 메타 */
@@ -1093,6 +1285,7 @@ a {
   align-items: center;
   gap: var(--space-md);
   margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .comment-form-options select {
@@ -1100,6 +1293,12 @@ a {
   font-size: 0.875rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+}
+
+.anon-status-msg {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-left: -8px;
 }
 
 .comment-input-row {
@@ -1189,12 +1388,20 @@ a {
 }
 
 .tier-request-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.75rem;
   padding: 2px 8px;
-  background-color: var(--color-accent-light);
-  color: var(--color-accent);
+  background-color: var(--color-bg);
+  color: var(--color-text-secondary);
   border-radius: var(--radius-sm);
   font-weight: 500;
+}
+
+.tier-request-badge .tier {
+  font-size: 0.625rem;
+  padding: 1px 4px;
 }
 
 .comment-text {
@@ -1437,4 +1644,1211 @@ a {
   .form-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* ========================================
+   Anime Page - Reviews Section
+======================================== */
+.anime-hero {
+  display: flex;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  padding: var(--space-xl);
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.anime-poster-hero {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.anime-poster-hero img {
+  width: 100%;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.anime-hero-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.anime-title-hero {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+}
+
+.anime-stats {
+  display: flex;
+  gap: var(--space-lg);
+  font-size: 1.125rem;
+  color: var(--color-text-secondary);
+}
+
+.anime-stats .stat-item {
+  font-weight: 500;
+}
+
+/* 리뷰 없을 때 */
+.anime-hero-simple {
+  display: flex;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  padding: var(--space-xl);
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.anime-poster-large {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.anime-poster-large img {
+  width: 100%;
+  border-radius: var(--radius-md);
+}
+
+.anime-hero-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.anime-title-large {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+}
+
+.no-reviews-msg {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-lg);
+}
+
+.write-review-btn {
+  display: inline-flex;
+  padding: var(--space-md) var(--space-xl);
+  background: linear-gradient(135deg, var(--color-accent), #f97316);
+  color: var(--color-white);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: transform var(--transition-fast);
+}
+
+.write-review-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* 리뷰 섹션 */
+.reviews-section {
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.reviews-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* 상위 1, 2, 3위 리뷰 */
+.top-reviews {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.top-review-card {
+  position: relative;
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  border: 2px solid transparent;
+}
+
+.top-review-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* 1등 - 통일 스타일 */
+.top-review-card.rank-1 {
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-white);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.top-review-card.rank-1 .review-oneliner-card {
+  font-size: 1rem;
+}
+
+.top-review-card.rank-1 .review-author {
+  font-size: 0.9375rem;
+}
+
+/* 2등 - 통일 스타일 */
+.top-review-card.rank-2 {
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-white);
+  border-color: var(--color-border);
+}
+
+.top-review-card.rank-2 .review-oneliner-card {
+  font-size: 1rem;
+}
+
+/* 3등 - 통일 스타일 */
+.top-review-card.rank-3 {
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-white);
+  border-color: var(--color-border);
+}
+
+.top-review-card.rank-3 .review-oneliner-card {
+  font-size: 1rem;
+}
+
+.rank-badge {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-accent), #f97316);
+  color: var(--color-white);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+}
+
+.top-review-card.rank-1 .rank-badge {
+  width: 28px;
+  height: 28px;
+  font-size: 0.875rem;
+  background: linear-gradient(135deg, var(--color-accent), #f97316);
+}
+
+.review-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.review-author-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.review-stats-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.review-stats-row .stat-item {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.vote-inline-btn {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  background-color: rgba(255,255,255,0.7);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.vote-inline-btn:hover {
+  background-color: var(--color-accent);
+  color: var(--color-white);
+  border-color: var(--color-accent);
+}
+
+.review-card-body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.review-rating {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.review-oneliner-card {
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* 4위 이후 리뷰 */
+.rest-reviews {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.review-card {
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+  border: 1px solid var(--color-border);
+}
+
+.review-card:hover {
+  background-color: var(--color-white);
+  transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
+}
+
+.review-card .review-oneliner-card {
+  font-size: 0.9375rem;
+  margin-top: var(--space-xs);
+}
+
+/* 리뷰 상세 페이지 */
+.review-detail-page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .anime-hero,
+  .anime-hero-simple {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .anime-poster-hero,
+  .anime-poster-large {
+    width: 150px;
+  }
+  
+  .anime-title-hero {
+    font-size: 1.5rem;
+  }
+  
+  .anime-stats {
+    justify-content: center;
+  }
+  
+  .top-review-card.rank-1 {
+    padding: var(--space-md);
+  }
+  
+  .rank-badge {
+    top: -8px;
+    left: -8px;
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
+  
+  .top-review-card.rank-1 .rank-badge {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
+}
+
+/* ========================================
+   Review Action Bar (간단/상세 리뷰 버튼)
+======================================== */
+.review-action-bar {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.quick-review-btn {
+  padding: var(--space-md) var(--space-xl);
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: var(--color-white);
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.quick-review-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.detail-review-btn {
+  padding: var(--space-md) var(--space-xl);
+  background: linear-gradient(135deg, var(--color-accent), #f97316);
+  color: var(--color-white);
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: var(--radius-md);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.detail-review-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.already-reviewed {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.login-prompt-simple {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.login-prompt-simple a {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+/* ========================================
+   한줄평 + 티어 Row
+======================================== */
+.review-oneliner-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.tier-card {
+  font-size: 0.875rem;
+  padding: 2px var(--space-sm);
+  flex-shrink: 0;
+}
+
+.tier-card-small {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.top-review-card.rank-1 .tier-card {
+  font-size: 0.875rem;
+  padding: 2px var(--space-sm);
+}
+
+/* ========================================
+   Quick Review Modal
+======================================== */
+.tier-select-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.tier-select-wide {
+  gap: var(--space-xs);
+}
+
+.tier-radio {
+  cursor: pointer;
+}
+
+.tier-radio input[type="radio"] {
+  display: none;
+}
+
+.tier-radio .tier {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  opacity: 0.6;
+  font-size: 0.875rem;
+}
+
+.tier-radio input[type="radio"]:checked + .tier {
+  opacity: 1;
+  border-color: var(--color-text-primary);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
+}
+
+.tier-radio:hover .tier {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+/* S 티어 스타일 */
+.tier-s {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: var(--color-white);
+}
+
+/* ========================================
+   Anime Search (write.html)
+======================================== */
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+}
+
+.form-group {
+  position: relative;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.search-result-item:hover {
+  background: var(--color-bg);
+}
+
+.search-result-img {
+  width: 40px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.search-result-title {
+  font-size: 0.9375rem;
+}
+
+.search-no-result {
+  padding: var(--space-md);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.selected-anime {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-sm);
+}
+
+.selected-anime img {
+  width: 50px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.selected-anime span {
+  flex: 1;
+  font-weight: 500;
+}
+
+.clear-selection {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: var(--space-xs);
+}
+
+.clear-selection:hover {
+  color: var(--color-accent);
+}
+
+/* ========================================
+   Review Owner Actions (수정/삭제)
+======================================== */
+.review-owner-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.8125rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.edit-btn {
+  background-color: var(--color-bg);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.edit-btn:hover {
+  background-color: var(--color-accent);
+  color: var(--color-white);
+  border-color: var(--color-accent);
+}
+
+.delete-btn {
+  background-color: transparent;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+}
+
+.delete-btn:hover {
+  background-color: #dc2626;
+  color: var(--color-white);
+}
+
+/* 내 리뷰 액션 (anime 페이지) */
+.my-review-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.already-reviewed-text {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.view-my-review-btn,
+.edit-my-review-btn,
+.delete-my-review-btn {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.875rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-my-review-btn {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.view-my-review-btn:hover {
+  background-color: var(--color-accent);
+  color: var(--color-white);
+  border-color: var(--color-accent);
+}
+
+.edit-my-review-btn {
+  background-color: #fbbf24;
+  color: var(--color-white);
+  border: none;
+}
+
+.edit-my-review-btn:hover {
+  background-color: #f59e0b;
+}
+
+.delete-my-review-btn {
+  background-color: transparent;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+}
+
+.delete-my-review-btn:hover {
+  background-color: #dc2626;
+  color: var(--color-white);
+}
+
+/* 댓글 삭제 버튼 */
+.delete-comment-btn {
+  padding: 2px var(--space-sm);
+  font-size: 0.75rem;
+  color: #dc2626;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.delete-comment-btn:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* 모달 large */
+.modal-large {
+  max-width: 600px;
+  width: 90%;
+}
+
+.modal-large textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.no-content {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .review-action-bar {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  
+  .quick-review-btn,
+  .detail-review-btn {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .my-review-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .review-owner-actions {
+    margin-left: 0;
+    margin-top: var(--space-sm);
+  }
+}
+
+/* ========================================
+   Admin Page
+======================================== */
+.admin-badge {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: var(--color-white);
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  margin-left: var(--space-sm);
+}
+
+.admin-main {
+  padding: var(--space-lg);
+}
+
+.admin-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.stat-card {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  display: block;
+}
+
+.stat-label {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-sm);
+}
+
+.tab-btn {
+  padding: var(--space-sm) var(--space-lg);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  transition: all var(--transition-fast);
+}
+
+.tab-btn:hover {
+  background: var(--color-bg);
+}
+
+.tab-btn.active {
+  background: var(--color-accent);
+  color: var(--color-white);
+}
+
+.admin-section {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.section-header h2 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.add-btn {
+  background: linear-gradient(135deg, var(--color-accent), #f97316);
+  color: var(--color-white);
+  border: none;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-table th {
+  background: var(--color-bg);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.admin-table td {
+  font-size: 0.875rem;
+}
+
+.table-img {
+  width: 40px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.oneliner-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-btn {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-right: 4px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.action-btn.edit {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.action-btn.edit:hover {
+  background: var(--color-accent);
+  color: var(--color-white);
+  border-color: var(--color-accent);
+}
+
+.action-btn.delete {
+  background: transparent;
+  border: 1px solid #dc2626;
+  color: #dc2626;
+}
+
+.action-btn.delete:hover {
+  background: #dc2626;
+  color: var(--color-white);
+}
+
+.modal-body {
+  padding: var(--space-md) 0;
+}
+
+.modal-body .form-group {
+  margin-bottom: var(--space-md);
+}
+
+@media (max-width: 768px) {
+  .admin-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .admin-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .admin-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+/* ========================================
+   Admin Series - Anime Tags
+======================================== */
+.anime-tag {
+  display: inline-block;
+  background: var(--color-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  margin: 2px;
+  border: 1px solid var(--color-border);
+}
+
+.no-anime {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.anime-checkbox-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+}
+
+.anime-checkbox-list .checkbox-label {
+  display: block;
+  padding: var(--space-xs) 0;
+}
+
+/* ========================================
+   Recent Activity Section (지금 뜨는 애니)
+======================================== */
+.recent-activity-section {
+  padding: var(--space-xl) 0;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  margin-bottom: var(--space-xl);
+}
+
+.recent-activity-section .section-title {
+  text-align: center;
+  margin-bottom: var(--space-xs);
+}
+
+.section-subtitle {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-lg);
+}
+
+.recent-activity-list {
+  display: flex;
+  gap: var(--space-md);
+  overflow-x: auto;
+  padding: 0 var(--space-lg);
+  padding-bottom: var(--space-md);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.recent-activity-card {
+  flex-shrink: 0;
+  width: 120px;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.recent-activity-card:hover {
+  transform: translateY(-4px);
+}
+
+.recent-activity-img {
+  width: 120px;
+  height: 170px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.recent-activity-info {
+  margin-top: var(--space-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.recent-activity-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ========================================
+   All Anime Section (모든 애니)
+======================================== */
+.all-anime-section {
+  padding: var(--space-xl) var(--space-lg);
+  max-width: 1200px;
+  margin: 0 auto var(--space-xl);
+}
+
+.all-anime-section .section-title {
+  margin-bottom: var(--space-lg);
+}
+
+.all-anime-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.all-anime-card {
+  width: 100px;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.all-anime-card:hover {
+  transform: translateY(-4px);
+}
+
+.all-anime-img {
+  width: 100px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.all-anime-info {
+  margin-top: var(--space-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+
+.all-anime-title {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tier-small {
+  font-size: 0.5rem;
+  padding: 1px 4px;
+}
+
+/* ========================================
+   Responsive - Recent & All Anime
+======================================== */
+@media (max-width: 768px) {
+  .recent-activity-card {
+    width: 100px;
+  }
+  
+  .recent-activity-img {
+    width: 100px;
+    height: 140px;
+  }
+  
+  .all-anime-card {
+    width: 80px;
+  }
+  
+  .all-anime-img {
+    width: 80px;
+    height: 112px;
+  }
+  
+  .all-anime-title {
+    font-size: 0.625rem;
+  }
+}
+
+/* ========================================
+   Markdown Body Styles
+======================================== */
+.markdown-body h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: var(--space-lg) 0 var(--space-md);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.markdown-body h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: var(--space-md) 0 var(--space-sm);
+}
+
+.markdown-body h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: var(--space-md) 0 var(--space-sm);
+}
+
+.markdown-body strong {
+  font-weight: 700;
+}
+
+.markdown-body em {
+  font-style: italic;
+}
+
+.markdown-body del {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+
+.markdown-body code {
+  background: var(--color-bg);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.875em;
+  color: var(--color-accent);
+}
+
+.markdown-body pre {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: var(--space-md) 0;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: 0.875rem;
+}
+
+.markdown-body blockquote {
+  border-left: 4px solid var(--color-accent);
+  padding-left: var(--space-md);
+  margin: var(--space-md) 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.markdown-body ul {
+  list-style: disc;
+  padding-left: var(--space-lg);
+  margin: var(--space-sm) 0;
+}
+
+.markdown-body li {
+  margin: var(--space-xs) 0;
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-lg) 0;
+}
+
+.markdown-body a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.markdown-body a:hover {
+  text-decoration: none;
 }

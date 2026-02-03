@@ -1,12 +1,21 @@
 /**
- * AniLog - 애니 상세 페이지 (리뷰 + 댓글)
+ * AniLog - 애니 상세 페이지 (리뷰 리스트)
  */
 
 const API = '/api';
 
+// 상태
+let currentAnimeId = null;
+let currentSort = 'votes'; // votes: 추천순, views: 조회순
+
 // ============================================
-// 유저 상태
+// 유틸리티
 // ============================================
+function getAnimeId() {
+  const params = new URLSearchParams(location.search);
+  return params.get('id');
+}
+
 function getUser() {
   const user = localStorage.getItem('anilog_user');
   return user ? JSON.parse(user) : null;
@@ -16,45 +25,24 @@ function clearUser() {
   localStorage.removeItem('anilog_user');
 }
 
-// URL에서 애니 id 추출
-function getAnimeId() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('id');
+// 날짜 포맷 (시:분 포함)
+function formatDateTime(dateStr) {
+  const date = new Date(dateStr);
+  const datepart = date.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const timepart = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${datepart} ${timepart}`;
 }
 
 // ============================================
 // API
 // ============================================
-async function fetchReviewDetail(animeId) {
+async function fetchAnimeReviews(animeId, sort = 'votes') {
   try {
-    const res = await fetch(`${API}/anime/${animeId}/review`);
+    const res = await fetch(`${API}/anime/${animeId}/reviews?sort=${sort}`);
     return await res.json();
   } catch (e) {
     console.error('API 실패:', e);
     return null;
-  }
-}
-
-async function fetchComments(reviewId, sort = 'recent', order = 'desc') {
-  try {
-    const res = await fetch(`${API}/reviews/${reviewId}/comments?sort=${sort}&order=${order}`);
-    return await res.json();
-  } catch (e) {
-    console.error('댓글 API 실패:', e);
-    return [];
-  }
-}
-
-async function submitComment(reviewId, data) {
-  try {
-    const res = await fetch(`${API}/reviews/${reviewId}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return await res.json();
-  } catch (e) {
-    return { error: '서버 오류' };
   }
 }
 
@@ -69,52 +57,6 @@ async function voteReview(reviewId, userId, voteType) {
   } catch (e) {
     return { error: '서버 오류' };
   }
-}
-
-async function voteComment(commentId, userId) {
-  try {
-    const res = await fetch(`${API}/comments/${commentId}/vote`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId })
-    });
-    return await res.json();
-  } catch (e) {
-    return { error: '서버 오류' };
-  }
-}
-
-async function getUserVote(reviewId, userId) {
-  try {
-    const res = await fetch(`${API}/reviews/${reviewId}/user-vote?userId=${userId}`);
-    return await res.json();
-  } catch (e) {
-    return { vote: null };
-  }
-}
-
-// ============================================
-// Markdown -> HTML 변환
-// ============================================
-function markdownToHtml(md) {
-  if (!md) return '';
-  return md
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
-    .replace(/^/, '<p>')
-    .replace(/$/, '</p>');
-}
-
-// 날짜 포맷
-function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
 // ============================================
@@ -152,391 +94,448 @@ function handleLogout() {
 }
 
 // ============================================
-// 상세 페이지 렌더링
+// 메인 렌더링
 // ============================================
-let currentReviewId = null;
-let currentSort = 'recent';
-let currentOrder = 'desc';
-let replyTarget = null;
-
-async function renderDetail(data) {
+async function renderAnimePage(data) {
   const container = document.getElementById('anime-detail');
   if (!container) return;
   
   if (!data) {
-    container.innerHTML = '<p class="error-msg">애니를 찾을 수 없습니다.</p>';
+    container.innerHTML = '<div class="error-msg">애니를 찾을 수 없습니다.</div>';
     return;
   }
   
-  document.title = `${data.title} - AniLog`;
+  const user = getUser();
   
-  const review = data.review;
+  // 유저가 이미 리뷰를 작성했는지 확인
+  const userReview = user && data.reviews ? data.reviews.find(r => r.userId === user.id) : null;
+  const userHasReview = !!userReview;
   
-  if (!review) {
-    container.innerHTML = `
-      <div class="no-review-page">
-        <h1>${data.title}</h1>
-        <p>아직 작성된 글이 없습니다.</p>
-        <a href="/" class="back-btn">← 메인으로</a>
+  // 관련 애니 HTML
+  const relatedAnimeHtml = data.relatedAnime && data.relatedAnime.length > 0 ? `
+    <div class="related-anime-section">
+      <h3 class="related-anime-title">📺 ${data.parentTitle || '관련'} 시리즈</h3>
+      <div class="related-anime-list">
+        ${data.relatedAnime.map(anime => `
+          <a href="/anime.html?id=${anime.id}" class="related-anime-card">
+            <div class="related-anime-poster">
+              <img src="${anime.coverImage || ''}" alt="${anime.title}">
+            </div>
+            <p class="related-anime-name">${anime.title}</p>
+          </a>
+        `).join('')}
       </div>
+    </div>
+  ` : '';
+  
+  // 리뷰 작성 버튼 영역
+  const reviewButtonsHtml = userHasReview ? `
+    <div class="review-action-bar">
+      <span class="already-reviewed-text">이미 리뷰를 작성하셨습니다.</span>
+      <div class="my-review-actions">
+        <a href="/review.html?id=${userReview.id}" class="view-my-review-btn">👁 보기</a>
+        <button class="edit-my-review-btn" onclick="openEditMyReviewModal(${userReview.id})">✏️ 수정</button>
+        <button class="delete-my-review-btn" onclick="handleDeleteMyReview(${userReview.id})">🗑️ 삭제</button>
+      </div>
+    </div>
+  ` : `
+    <div class="review-action-bar">
+      <button class="quick-review-btn" onclick="openQuickReviewModal()">⚡ 간단 리뷰</button>
+      <a href="/write.html?animeId=${data.id}" class="detail-review-btn">✏️ 상세 리뷰 작성</a>
+    </div>
+  `;
+  
+  // 리뷰가 없는 경우
+  if (!data.reviews || data.reviews.length === 0) {
+    container.innerHTML = `
+      <div class="anime-hero-simple">
+        <div class="anime-poster-large">
+          <img src="${data.coverImage || ''}" alt="${data.title}">
+        </div>
+        <div class="anime-hero-info">
+          <h1 class="anime-title-large">${data.title}</h1>
+          <p class="no-reviews-msg">아직 리뷰가 없습니다. 첫 번째 리뷰를 작성해보세요!</p>
+        </div>
+      </div>
+      ${relatedAnimeHtml}
+      ${user ? reviewButtonsHtml : '<div class="review-action-bar"><p class="login-prompt-simple">리뷰를 작성하려면 <a href="/">로그인</a>하세요.</p></div>'}
+      <a href="/" class="back-btn">← 메인으로</a>
     `;
     return;
   }
   
-  currentReviewId = review.id;
-  const tierClass = `tier-${review.tier.toLowerCase()}`;
-  const user = getUser();
-  
-  // 유저 투표 상태 확인
-  let userVote = null;
-  if (user) {
-    const voteData = await getUserVote(review.id, user.id);
-    userVote = voteData.vote;
-  }
-  
-  const initial = review.author.charAt(0).toUpperCase();
+  // 상위 3개와 나머지 분리
+  const topReviews = data.reviews.slice(0, 3);
+  const restReviews = data.reviews.slice(3);
   
   container.innerHTML = `
-    <!-- 상단 애니 정보 -->
-    <div class="review-hero">
-      <div class="review-poster">
+    <!-- 애니 정보 히어로 -->
+    <div class="anime-hero">
+      <div class="anime-poster-hero">
         <img src="${data.coverImage || ''}" alt="${data.title}">
       </div>
-      <div class="review-hero-info">
-        <div class="review-hero-header">
-          <span class="tier ${tierClass}">${review.tier}</span>
-          <h1 class="review-title">${data.title}</h1>
-          <span class="review-rating-large">★ ${review.rating}</span>
-        </div>
-        <div class="review-oneliner-container">
-          <p class="review-oneliner-inline">"${review.oneLiner || ''}"</p>
-          <p class="review-author">- ${review.author || ''}</p>
+      <div class="anime-hero-content">
+        <h1 class="anime-title-hero">${data.title}</h1>
+        <div class="anime-stats">
+          <span class="stat-item">★ ${data.avgRating || 0}</span>
+          <span class="stat-item">리뷰 ${data.reviewCount || 0}개</span>
         </div>
       </div>
     </div>
     
-    <!-- 작성자 정보 -->
-    <div class="review-meta">
-      <div class="review-author-info">
-        <div class="user-avatar">
-          ${review.profileImage ? `<img src="${review.profileImage}" alt="">` : initial}
-        </div>
-        <span class="review-author-name">${review.author}</span>
-        <span class="review-divider">|</span>
-        <span class="review-date">${formatDate(review.createdAt)}</span>
-      </div>
-      <div class="review-stats">
-        <span class="stat-item">👁 ${review.viewCount || 0}</span>
-        <span class="stat-item">👍 ${review.upCount || 0}</span>
-        <span class="stat-item">💬 ${review.commentCount || 0}</span>
-      </div>
-    </div>
+    ${relatedAnimeHtml}
     
-    <!-- 본문 -->
-    <div class="review-content-box">
-      ${markdownToHtml(review.content)}
-    </div>
+    <!-- 리뷰 작성 버튼 -->
+    ${user ? reviewButtonsHtml : '<div class="review-action-bar"><p class="login-prompt-simple">리뷰를 작성하려면 <a href="/">로그인</a>하세요.</p></div>'}
     
-    <!-- 추천/비추천 버튼 -->
-    <div class="vote-section">
-      <button class="vote-btn up ${userVote === 'up' ? 'active' : ''}" onclick="handleVote('up')">
-        👍 개추 <span id="up-count">${review.upCount || 0}</span>
-      </button>
-      <button class="vote-btn down ${userVote === 'down' ? 'active' : ''}" onclick="handleVote('down')">
-        👎 비추 <span id="down-count">${review.downCount || 0}</span>
-      </button>
-    </div>
-    
-    <!-- 댓글 섹션 -->
-    <div class="comments-section">
-      <div class="comments-header">
-        <h2>댓글</h2>
+    <!-- 리뷰 섹션 -->
+    <div class="reviews-section">
+      <div class="reviews-header">
+        <h2>리뷰</h2>
         <div class="sort-buttons">
-          <button class="sort-btn ${currentSort === 'popular' ? 'active' : ''}" onclick="changeSort('popular')">
-            인기순
+          <button class="sort-btn ${currentSort === 'votes' ? 'active' : ''}" onclick="changeSort('votes')">
+            추천순
           </button>
-          <button class="sort-btn ${currentSort === 'recent' ? 'active' : ''}" onclick="changeSort('recent')">
-            최신순 ${currentOrder === 'desc' ? '▼' : '▲'}
+          <button class="sort-btn ${currentSort === 'views' ? 'active' : ''}" onclick="changeSort('views')">
+            조회순
           </button>
         </div>
       </div>
       
-      <!-- 댓글 작성 폼 -->
-      <div class="comment-form-box" id="comment-form-box">
-        ${user ? `
-          <form id="comment-form" onsubmit="handleCommentSubmit(event)">
-            <div class="comment-form-options">
-              <label class="checkbox-label">
-                <input type="checkbox" id="is-anonymous"> 익명
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="tier-request-check"> 티어 수정 요청
-              </label>
-              <select id="tier-request-select" disabled>
-                <option value="">티어 선택</option>
-                <option value="SSS">SSS</option>
-                <option value="SS">SS</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-                <option value="E">E</option>
-              </select>
-            </div>
-            <div class="comment-input-row">
-              <textarea id="comment-content" placeholder="댓글을 입력하세요..." rows="3" required></textarea>
-              <button type="submit" class="submit-btn">등록</button>
-            </div>
-          </form>
-        ` : `
-          <p class="login-prompt">댓글을 작성하려면 <a href="/" class="link">로그인</a>이 필요합니다.</p>
-        `}
+      <!-- 상위 1, 2, 3위 리뷰 -->
+      <div class="top-reviews">
+        ${topReviews.map((review, idx) => renderTopReviewCard(review, idx + 1)).join('')}
       </div>
       
-      <!-- 댓글 목록 -->
-      <div class="comments-list" id="comments-list">
-        <!-- JS로 렌더링 -->
-      </div>
+      <!-- 4위 이후 리뷰 -->
+      ${restReviews.length > 0 ? `
+        <div class="rest-reviews">
+          ${restReviews.map(review => renderReviewCard(review)).join('')}
+        </div>
+      ` : ''}
     </div>
     
     <a href="/" class="back-btn">← 메인으로</a>
   `;
-  
-  // 티어 수정 요청 체크박스 이벤트
-  const tierCheck = document.getElementById('tier-request-check');
-  const tierSelect = document.getElementById('tier-request-select');
-  if (tierCheck && tierSelect) {
-    tierCheck.addEventListener('change', () => {
-      tierSelect.disabled = !tierCheck.checked;
-    });
-  }
-  
-  // 댓글 로드
-  loadComments();
 }
 
-// ============================================
-// 댓글 렌더링
-// ============================================
-async function loadComments() {
-  if (!currentReviewId) return;
-  
-  const comments = await fetchComments(currentReviewId, currentSort, currentOrder);
-  renderComments(comments);
-}
-
-function renderComments(comments) {
-  const container = document.getElementById('comments-list');
-  if (!container) return;
-  
-  if (comments.length === 0) {
-    container.innerHTML = '<p class="no-comments">아직 댓글이 없습니다.</p>';
-    return;
-  }
-  
-  // 부모 댓글과 자식 댓글 분리
-  const parentComments = comments.filter(c => !c.parentId);
-  const childComments = comments.filter(c => c.parentId);
-  
-  // 부모별로 자식 그룹화
-  const childMap = {};
-  childComments.forEach(c => {
-    if (!childMap[c.parentId]) childMap[c.parentId] = [];
-    childMap[c.parentId].push(c);
-  });
-  
+// 상위 1, 2, 3위 리뷰 카드 (크기 다름)
+function renderTopReviewCard(review, rank) {
+  const initial = review.author.charAt(0).toUpperCase();
+  const rankClass = `rank-${rank}`;
   const user = getUser();
   
-  container.innerHTML = parentComments.map(comment => {
-    const children = childMap[comment.id] || [];
-    const initial = comment.author.charAt(0).toUpperCase();
-    const hasReplies = children.length > 0;
-    
-    return `
-      <div class="comment-item" data-comment-id="${comment.id}">
-        <div class="comment-main">
-          <div class="comment-header">
-            <div class="comment-author-info">
-              <div class="user-avatar small">
-                ${comment.profileImage ? `<img src="${comment.profileImage}" alt="">` : initial}
-              </div>
-              <span class="comment-author">${comment.author}</span>
-              <span class="comment-date">${formatDate(comment.createdAt)}</span>
-            </div>
-            ${comment.tierRequest ? `<span class="tier-request-badge">티어 수정 요청: ${comment.tierRequest}</span>` : ''}
+  return `
+    <div class="top-review-card ${rankClass}" onclick="goToReview(${review.id})">
+      <div class="rank-badge">${rank}</div>
+      <div class="review-card-header">
+        <div class="review-author-row">
+          <div class="user-avatar ${rank === 1 ? '' : 'small'}">
+            ${review.profileImage ? `<img src="${review.profileImage}" alt="">` : initial}
           </div>
-          <p class="comment-text">${comment.content}</p>
-          <div class="comment-actions">
-            ${user ? `<button class="reply-btn" onclick="setReplyTarget(${comment.id}, '${comment.author}')">답글</button>` : ''}
-            <button class="vote-small-btn" onclick="handleCommentVote(${comment.id})">
-              👍 ${comment.voteCount || 0}
-            </button>
-          </div>
+          <span class="review-author">${review.author}</span>
+          <span class="review-date">${formatDateTime(review.createdAt)}</span>
         </div>
-        
-        ${hasReplies ? `
-          <button class="toggle-replies-btn" onclick="toggleReplies(${comment.id})">
-            <span class="toggle-text">답글 ${children.length}개 펼치기</span>
+        <div class="review-stats-row">
+          <span class="stat-item">👁 ${review.viewCount || 0}</span>
+          <span class="stat-item">💬 ${review.commentCount || 0}</span>
+          <button class="vote-inline-btn" onclick="event.stopPropagation(); handleVote(${review.id}, 'up')">
+            👍 ${review.upCount || 0}
           </button>
-          <div class="comment-replies" id="replies-${comment.id}" style="display: none;">
-            ${children.map(child => {
-              const childInitial = child.author.charAt(0).toUpperCase();
-              return `
-                <div class="comment-reply">
-                  <div class="comment-header">
-                    <div class="comment-author-info">
-                      <div class="user-avatar small">
-                        ${child.profileImage ? `<img src="${child.profileImage}" alt="">` : childInitial}
-                      </div>
-                      <span class="comment-author">${child.author}</span>
-                      <span class="comment-date">${formatDate(child.createdAt)}</span>
-                    </div>
-                  </div>
-                  <p class="comment-text">${child.content}</p>
-                  <div class="comment-actions">
-                    ${user ? `<button class="reply-btn" onclick="setReplyTarget(${comment.id}, '${child.author}')">답글</button>` : ''}
-                    <button class="vote-small-btn" onclick="handleCommentVote(${child.id})">
-                      👍 ${child.voteCount || 0}
-                    </button>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        ` : ''}
+        </div>
       </div>
-    `;
-  }).join('');
+      <div class="review-oneliner-row">
+        <span class="tier tier-${review.tier.toLowerCase()} tier-card">${review.tier}</span>
+        <p class="review-oneliner-card">"${review.oneLiner || ''}"</p>
+      </div>
+    </div>
+  `;
 }
 
-// 답글 펼치기/접기
-function toggleReplies(commentId) {
-  const repliesDiv = document.getElementById(`replies-${commentId}`);
-  const btn = document.querySelector(`.comment-item[data-comment-id="${commentId}"] .toggle-replies-btn`);
-  const textSpan = btn.querySelector('.toggle-text');
+// 4위 이후 리뷰 카드 (동일 크기)
+function renderReviewCard(review) {
+  const initial = review.author.charAt(0).toUpperCase();
   
-  if (repliesDiv.style.display === 'none') {
-    repliesDiv.style.display = 'block';
-    const count = repliesDiv.querySelectorAll('.comment-reply').length;
-    textSpan.textContent = `답글 ${count}개 접기`;
-  } else {
-    repliesDiv.style.display = 'none';
-    const count = repliesDiv.querySelectorAll('.comment-reply').length;
-    textSpan.textContent = `답글 ${count}개 펼치기`;
-  }
+  return `
+    <div class="review-card" onclick="goToReview(${review.id})">
+      <div class="review-card-header">
+        <div class="review-author-row">
+          <div class="user-avatar small">
+            ${review.profileImage ? `<img src="${review.profileImage}" alt="">` : initial}
+          </div>
+          <span class="review-author">${review.author}</span>
+          <span class="review-date">${formatDateTime(review.createdAt)}</span>
+        </div>
+        <div class="review-stats-row">
+          <span class="stat-item">👁 ${review.viewCount || 0}</span>
+          <span class="stat-item">💬 ${review.commentCount || 0}</span>
+          <button class="vote-inline-btn" onclick="event.stopPropagation(); handleVote(${review.id}, 'up')">
+            👍 ${review.upCount || 0}
+          </button>
+        </div>
+      </div>
+      <div class="review-oneliner-row">
+        <span class="tier tier-${review.tier.toLowerCase()} tier-card-small">${review.tier}</span>
+        <p class="review-oneliner-card">"${review.oneLiner || ''}"</p>
+      </div>
+    </div>
+  `;
 }
 
 // ============================================
 // 이벤트 핸들러
 // ============================================
-async function handleVote(type) {
+function goToReview(reviewId) {
+  location.href = `/review.html?id=${reviewId}`;
+}
+
+async function handleVote(reviewId, voteType) {
   const user = getUser();
   if (!user) {
     alert('로그인이 필요합니다.');
     return;
   }
   
-  const result = await voteReview(currentReviewId, user.id, type);
+  await voteReview(reviewId, user.id, voteType);
   
-  if (result.error) {
-    alert(result.error);
-    return;
-  }
-  
-  // 투표 카운트 다시 가져오기
-  const animeId = getAnimeId();
-  const data = await fetchReviewDetail(animeId);
-  if (data && data.review) {
-    document.getElementById('up-count').textContent = data.review.upCount || 0;
-    document.getElementById('down-count').textContent = data.review.downCount || 0;
-    
-    // 버튼 상태 업데이트
-    const voteData = await getUserVote(currentReviewId, user.id);
-    const upBtn = document.querySelector('.vote-btn.up');
-    const downBtn = document.querySelector('.vote-btn.down');
-    
-    upBtn.classList.toggle('active', voteData.vote === 'up');
-    downBtn.classList.toggle('active', voteData.vote === 'down');
-  }
+  // 리뷰 목록 새로고침
+  const data = await fetchAnimeReviews(currentAnimeId, currentSort);
+  renderAnimePage(data);
 }
 
-async function handleCommentVote(commentId) {
+async function changeSort(sort) {
+  currentSort = sort;
+  const data = await fetchAnimeReviews(currentAnimeId, sort);
+  renderAnimePage(data);
+}
+
+// ============================================
+// 간단 리뷰 모달
+// ============================================
+function openQuickReviewModal() {
   const user = getUser();
   if (!user) {
     alert('로그인이 필요합니다.');
     return;
   }
   
-  const result = await voteComment(commentId, user.id);
-  if (result.error) {
-    alert(result.error);
-    return;
-  }
+  closeModal();
   
-  // 댓글 목록 새로고침
-  loadComments();
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'quick-review-modal';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">⚡ 간단 리뷰</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <form class="modal-form" onsubmit="handleQuickReviewSubmit(event)">
+        <div class="form-group">
+          <label>티어 선택</label>
+          <div class="tier-select-grid tier-select-wide">
+            <label class="tier-radio"><input type="radio" name="tier" value="SSS" required><span class="tier tier-sss">SSS</span></label>
+            <label class="tier-radio"><input type="radio" name="tier" value="SS"><span class="tier tier-ss">SS</span></label>
+            <label class="tier-radio"><input type="radio" name="tier" value="S"><span class="tier tier-s">S</span></label>
+            <label class="tier-radio"><input type="radio" name="tier" value="A"><span class="tier tier-a">A</span></label>
+            <label class="tier-radio"><input type="radio" name="tier" value="B"><span class="tier tier-b">B</span></label>
+            <label class="tier-radio"><input type="radio" name="tier" value="C"><span class="tier tier-c">C</span></label>
+            <label class="tier-radio"><input type="radio" name="tier" value="D"><span class="tier tier-d">D</span></label>
+            <label class="tier-radio"><input type="radio" name="tier" value="E"><span class="tier tier-e">E</span></label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>한줄평</label>
+          <input type="text" id="quick-oneliner" placeholder="이 애니를 한 줄로 표현하면?" maxlength="100" required>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="quick-anonymous"> 익명으로 작성
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="auth-btn primary" style="width:100%">등록</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
 }
 
-function changeSort(sort) {
-  if (sort === 'recent' && currentSort === 'recent') {
-    // 토글
-    currentOrder = currentOrder === 'desc' ? 'asc' : 'desc';
-  } else {
-    currentSort = sort;
-    currentOrder = 'desc';
-  }
-  
-  // 버튼 업데이트
-  document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelector(`.sort-btn:nth-child(${sort === 'popular' ? 1 : 2})`).classList.add('active');
-  
-  if (sort === 'recent') {
-    document.querySelector('.sort-btn:nth-child(2)').textContent = `최신순 ${currentOrder === 'desc' ? '▼' : '▲'}`;
-  }
-  
-  loadComments();
+function closeModal() {
+  const modal = document.getElementById('quick-review-modal');
+  if (modal) modal.remove();
 }
 
-function setReplyTarget(parentId, authorName) {
-  replyTarget = { parentId, authorName };
-  const textarea = document.getElementById('comment-content');
-  if (textarea) {
-    textarea.value = `@${authorName} `;
-    textarea.focus();
-  }
-}
-
-async function handleCommentSubmit(e) {
+async function handleQuickReviewSubmit(e) {
   e.preventDefault();
   
   const user = getUser();
   if (!user) return;
   
-  const content = document.getElementById('comment-content').value;
-  const isAnonymous = document.getElementById('is-anonymous').checked;
-  const tierRequestCheck = document.getElementById('tier-request-check');
-  const tierRequestSelect = document.getElementById('tier-request-select');
-  const tierRequest = tierRequestCheck?.checked ? tierRequestSelect?.value : null;
+  const tier = document.querySelector('input[name="tier"]:checked')?.value;
+  const oneLiner = document.getElementById('quick-oneliner').value;
+  const isAnonymous = document.getElementById('quick-anonymous').checked;
+  
+  if (!tier) {
+    alert('티어를 선택해주세요.');
+    return;
+  }
   
   const data = {
+    animeId: currentAnimeId,
+    tier,
+    rating: getTierDefaultRating(tier), // 티어 기반 기본 점수
+    oneLiner,
+    content: '', // 간단 리뷰는 본문 없음
     userId: user.id,
-    parentId: replyTarget?.parentId || null,
-    isAnonymous,
-    content,
-    tierRequest
+    isAnonymous
   };
   
-  const result = await submitComment(currentReviewId, data);
+  try {
+    const res = await fetch(`${API}/reviews`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    
+    if (result.id) {
+      closeModal();
+      alert('리뷰가 등록되었습니다!');
+      // 페이지 새로고침
+      const newData = await fetchAnimeReviews(currentAnimeId, currentSort);
+      renderAnimePage(newData);
+    } else {
+      alert(result.error || '등록 실패');
+    }
+  } catch (e) {
+    alert('서버 오류');
+  }
+}
+
+// 티어별 기본 점수
+function getTierDefaultRating(tier) {
+  const ratings = {
+    'SSS': 9.5,
+    'SS': 9.0,
+    'S': 8.5,
+    'A': 8.0,
+    'B': 7.0,
+    'C': 6.0,
+    'D': 5.0,
+    'E': 4.0
+  };
+  return ratings[tier] || 7.0;
+}
+
+// ============================================
+// 내 리뷰 수정/삭제
+// ============================================
+let myReviewData = null;
+
+async function openEditMyReviewModal(reviewId) {
+  const user = getUser();
+  if (!user) return;
   
-  if (result.id) {
-    document.getElementById('comment-content').value = '';
-    document.getElementById('is-anonymous').checked = false;
-    if (tierRequestCheck) tierRequestCheck.checked = false;
-    if (tierRequestSelect) tierRequestSelect.disabled = true;
-    replyTarget = null;
-    loadComments();
-  } else {
-    alert(result.error || '댓글 등록 실패');
+  // 리뷰 데이터 가져오기
+  try {
+    const res = await fetch(`${API}/reviews/${reviewId}`);
+    myReviewData = await res.json();
+  } catch (e) {
+    alert('리뷰 정보를 불러올 수 없습니다.');
+    return;
+  }
+  
+  closeModal();
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'quick-review-modal';
+  modal.innerHTML = `
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ 리뷰 수정</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <form class="modal-form" onsubmit="handleEditMyReviewSubmit(event, ${reviewId})">
+        <div class="form-group">
+          <label>한줄평</label>
+          <input type="text" id="edit-oneliner" value="${myReviewData.oneLiner || ''}" maxlength="100">
+        </div>
+        <div class="form-group">
+          <label>본문</label>
+          <textarea id="edit-content" rows="8">${myReviewData.content || ''}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="cancel-btn" onclick="closeModal()">취소</button>
+          <button type="submit" class="auth-btn primary">수정</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+}
+
+async function handleEditMyReviewSubmit(e, reviewId) {
+  e.preventDefault();
+  
+  const user = getUser();
+  if (!user) return;
+  
+  const oneLiner = document.getElementById('edit-oneliner').value;
+  const content = document.getElementById('edit-content').value;
+  
+  try {
+    const res = await fetch(`${API}/reviews/${reviewId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, oneLiner, content })
+    });
+    const result = await res.json();
+    
+    if (result.message) {
+      closeModal();
+      alert('수정되었습니다.');
+      const newData = await fetchAnimeReviews(currentAnimeId, currentSort);
+      renderAnimePage(newData);
+    } else {
+      alert(result.error || '수정 실패');
+    }
+  } catch (e) {
+    alert('서버 오류');
+  }
+}
+
+async function handleDeleteMyReview(reviewId) {
+  const user = getUser();
+  if (!user) return;
+  
+  if (!confirm('정말 이 리뷰를 삭제하시겠습니까?\n댓글도 모두 삭제됩니다.')) return;
+  
+  try {
+    const res = await fetch(`${API}/reviews/${reviewId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id })
+    });
+    const result = await res.json();
+    
+    if (result.message) {
+      alert('삭제되었습니다.');
+      const newData = await fetchAnimeReviews(currentAnimeId, currentSort);
+      renderAnimePage(newData);
+    } else {
+      alert(result.error || '삭제 실패');
+    }
+  } catch (e) {
+    alert('서버 오류');
   }
 }
 
@@ -546,14 +545,14 @@ async function handleCommentSubmit(e) {
 async function init() {
   renderAuthHeader();
   
-  const animeId = getAnimeId();
-  if (!animeId) {
+  currentAnimeId = getAnimeId();
+  if (!currentAnimeId) {
     location.href = '/';
     return;
   }
   
-  const data = await fetchReviewDetail(animeId);
-  await renderDetail(data);
+  const data = await fetchAnimeReviews(currentAnimeId, currentSort);
+  renderAnimePage(data);
 }
 
 document.addEventListener('DOMContentLoaded', init);

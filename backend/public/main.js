@@ -1,5 +1,5 @@
 /**
- * AniLog - 애니메이션 리뷰 사이트
+ * AniLog - 메인 페이지
  */
 
 const API = '/api';
@@ -33,6 +33,26 @@ async function fetchFeatured() {
   }
 }
 
+async function fetchRecentActivity() {
+  try {
+    const res = await fetch(`${API}/recent-activity`);
+    return await res.json();
+  } catch (e) {
+    console.error('Recent Activity API 실패:', e);
+    return [];
+  }
+}
+
+async function fetchAllAnime() {
+  try {
+    const res = await fetch(`${API}/all-anime`);
+    return await res.json();
+  } catch (e) {
+    console.error('All Anime API 실패:', e);
+    return [];
+  }
+}
+
 async function fetchCategories() {
   try {
     const res = await fetch(`${API}/categories`);
@@ -40,30 +60,6 @@ async function fetchCategories() {
   } catch (e) {
     console.error('Categories API 실패:', e);
     return [];
-  }
-}
-
-async function fetchAnimeList() {
-  try {
-    const res = await fetch(`${API}/anime-list`);
-    return await res.json();
-  } catch (e) {
-    console.error('AnimeList API 실패:', e);
-    return [];
-  }
-}
-
-async function submitReview(data) {
-  try {
-    const res = await fetch(`${API}/reviews`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return await res.json();
-  } catch (e) {
-    console.error('리뷰 작성 실패:', e);
-    return null;
   }
 }
 
@@ -76,7 +72,6 @@ async function login(username, password) {
     });
     return await res.json();
   } catch (e) {
-    console.error('로그인 실패:', e);
     return { error: '서버 오류' };
   }
 }
@@ -90,7 +85,6 @@ async function register(username, password, nickname) {
     });
     return await res.json();
   } catch (e) {
-    console.error('회원가입 실패:', e);
     return { error: '서버 오류' };
   }
 }
@@ -128,14 +122,30 @@ function renderAuthHeader() {
 function handleLogout() {
   clearUser();
   renderAuthHeader();
-  // 폼 업데이트
-  updateWriteFormForUser();
+}
+
+// 리뷰 작성 페이지 이동 (로그인 체크)
+function goToWrite(e) {
+  e.preventDefault();
+  const user = getUser();
+  if (!user) {
+    alert('로그인이 필요합니다.');
+    showLoginModal();
+    return;
+  }
+  location.href = '/write.html';
 }
 
 // ============================================
 // 모달
 // ============================================
+function closeModal() {
+  const modal = document.getElementById('auth-modal');
+  if (modal) modal.remove();
+}
+
 function showLoginModal() {
+  closeModal();
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.id = 'auth-modal';
@@ -212,11 +222,6 @@ function showRegisterModal() {
   });
 }
 
-function closeModal() {
-  const modal = document.getElementById('auth-modal');
-  if (modal) modal.remove();
-}
-
 async function handleLogin(e) {
   e.preventDefault();
   const username = document.getElementById('login-username').value;
@@ -228,7 +233,6 @@ async function handleLogin(e) {
     setUser(result.user);
     closeModal();
     renderAuthHeader();
-    updateWriteFormForUser();
     alert(`${result.user.nickname}님 환영합니다!`);
   } else {
     alert(result.error || '로그인 실패');
@@ -242,7 +246,6 @@ async function handleRegister(e) {
   const passwordConfirm = document.getElementById('reg-password-confirm').value;
   const nickname = document.getElementById('reg-nickname').value;
   
-  // 비밀번호 2중 체크
   if (password !== passwordConfirm) {
     alert('비밀번호가 일치하지 않습니다.');
     return;
@@ -251,13 +254,11 @@ async function handleRegister(e) {
   const result = await register(username, password, nickname);
   
   if (result.id) {
-    // 가입 성공 후 자동 로그인
     const loginResult = await login(username, password);
     if (loginResult.user) {
       setUser(loginResult.user);
       closeModal();
       renderAuthHeader();
-      updateWriteFormForUser();
       alert(`${loginResult.user.nickname}님 환영합니다!`);
     } else {
       alert('가입 완료! 로그인해주세요.');
@@ -269,15 +270,14 @@ async function handleRegister(e) {
 }
 
 // ============================================
-// DOM - Featured Card (상단, 리뷰어 이름 표시)
+// DOM - Featured Card
 // ============================================
 function createFeaturedCard(anime) {
   const tierClass = `tier-${anime.tier.toLowerCase()}`;
+  const reviewerText = anime.reviewer ? ` - ${anime.reviewer}` : '';
   
   const card = document.createElement('article');
   card.className = 'featured-card';
-  
-  const reviewerText = anime.reviewer ? ` - ${anime.reviewer}` : '';
   
   card.innerHTML = `
     <div class="featured-poster">
@@ -304,7 +304,7 @@ function createFeaturedCard(anime) {
 }
 
 // ============================================
-// DOM - List Card (하단, 한줄평 말줄임)
+// DOM - List Card
 // ============================================
 function createListCard(anime) {
   const tierClass = `tier-${anime.tier.toLowerCase()}`;
@@ -378,191 +378,74 @@ function renderCategories(data) {
   container.innerHTML = '';
   data.forEach(cat => {
     if (cat.animeList && cat.animeList.length > 0) {
-      container.appendChild(createCategoryBlock(cat));
+      // "모든 애니" 카테고리는 제외 (별도 섹션으로)
+      if (cat.name !== '모든 애니') {
+        container.appendChild(createCategoryBlock(cat));
+      }
     }
   });
 }
 
 // ============================================
-// 리뷰 작성 폼
+// DOM - 최근 활동 섹션
 // ============================================
-let cachedCategories = [];
-let cachedAnimeList = [];
-
-async function renderWriteForm(categories, animeList) {
-  cachedCategories = categories;
-  cachedAnimeList = animeList;
+function renderRecentActivity(data) {
+  const container = document.getElementById('recent-activity');
+  if (!container || data.length === 0) {
+    if (container) container.style.display = 'none';
+    return;
+  }
   
-  const container = document.getElementById('write-section');
+  container.style.display = 'block';
+  const list = container.querySelector('.recent-activity-list');
+  if (!list) return;
+  
+  list.innerHTML = '';
+  data.forEach(anime => {
+    const tierClass = anime.tier ? `tier-${anime.tier.toLowerCase()}` : '';
+    const card = document.createElement('div');
+    card.className = 'recent-activity-card';
+    card.innerHTML = `
+      <img src="${anime.coverImage || ''}" alt="${anime.title}" class="recent-activity-img">
+      <div class="recent-activity-info">
+        <span class="recent-activity-title">${anime.title}</span>
+        ${anime.tier ? `<span class="tier ${tierClass} tier-small">${anime.tier}</span>` : ''}
+      </div>
+    `;
+    card.addEventListener('click', () => {
+      window.location.href = `/anime.html?id=${anime.id}`;
+    });
+    list.appendChild(card);
+  });
+}
+
+// ============================================
+// DOM - 모든 애니 섹션
+// ============================================
+function renderAllAnime(data) {
+  const container = document.getElementById('all-anime');
   if (!container) return;
   
-  const user = getUser();
+  const list = container.querySelector('.all-anime-list');
+  if (!list) return;
   
-  const categoryOptions = categories.map(c => 
-    `<label class="checkbox-label">
-      <input type="checkbox" name="categories" value="${c.name}"> ${c.icon} ${c.name}
-    </label>`
-  ).join('');
-  
-  const animeOptions = animeList.map(a => 
-    `<option value="${a.id}" data-has-review="${a.hasReview}">${a.title}${a.hasReview ? ' (리뷰 있음)' : ''}</option>`
-  ).join('');
-  
-  // 로그인 시 작성자/비번 필드 숨김
-  const authorFields = user ? `
-    <div class="form-group">
-      <label>작성자</label>
-      <input type="text" value="${user.nickname}" disabled style="background:#f0f0f0">
-    </div>
-  ` : `
-    <div class="form-row" id="guest-fields">
-      <div class="form-group">
-        <label for="author">작성자</label>
-        <input type="text" id="author" name="author" placeholder="익명">
+  list.innerHTML = '';
+  data.forEach(anime => {
+    const tierClass = anime.tier ? `tier-${anime.tier.toLowerCase()}` : '';
+    const card = document.createElement('div');
+    card.className = 'all-anime-card';
+    card.innerHTML = `
+      <img src="${anime.coverImage || ''}" alt="${anime.title}" class="all-anime-img">
+      <div class="all-anime-info">
+        <span class="all-anime-title">${anime.title}</span>
+        ${anime.tier ? `<span class="tier ${tierClass} tier-small">${anime.tier}</span>` : ''}
       </div>
-      <div class="form-group">
-        <label for="password">비밀번호</label>
-        <input type="password" id="password" name="password" placeholder="삭제 시 필요">
-      </div>
-    </div>
-  `;
-  
-  container.innerHTML = `
-    <h2 class="section-title">리뷰 작성</h2>
-    <form id="review-form" class="review-form">
-      <div class="form-group">
-        <label>애니 선택</label>
-        <select id="anime-select" name="animeId">
-          <option value="">-- 새 애니 등록 --</option>
-          ${animeOptions}
-        </select>
-      </div>
-      
-      <div id="new-anime-fields" class="new-anime-fields">
-        <div class="form-group">
-          <label for="animeTitle">애니 제목 *</label>
-          <input type="text" id="animeTitle" name="animeTitle">
-        </div>
-        <div class="form-group">
-          <label for="animeCoverImage">포스터 URL</label>
-          <input type="url" id="animeCoverImage" name="animeCoverImage" placeholder="https://...">
-        </div>
-        <div class="form-group">
-          <label>카테고리</label>
-          <div class="checkbox-group">${categoryOptions}</div>
-        </div>
-      </div>
-      
-      <div class="form-divider"></div>
-      
-      ${authorFields}
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label for="tier">티어 *</label>
-          <select id="tier" name="tier" required>
-            <option value="SSS">SSS</option>
-            <option value="SS">SS</option>
-            <option value="A" selected>A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-            <option value="D">D</option>
-            <option value="E">E</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="rating">평점 (0-10) *</label>
-          <input type="number" id="rating" name="rating" min="0" max="10" step="0.1" required>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <label for="oneLiner">한줄평 *</label>
-        <input type="text" id="oneLiner" name="oneLiner" placeholder="이 애니를 한 문장으로!" required>
-      </div>
-      
-      <div class="form-group">
-        <label for="content">본문 (Markdown)</label>
-        <textarea id="content" name="content" rows="8" placeholder="상세 리뷰를 작성하세요..."></textarea>
-      </div>
-      
-      <button type="submit" class="submit-btn">리뷰 등록</button>
-    </form>
-  `;
-  
-  const animeSelect = document.getElementById('anime-select');
-  const newAnimeFields = document.getElementById('new-anime-fields');
-  
-  animeSelect.addEventListener('change', () => {
-    if (animeSelect.value) {
-      newAnimeFields.style.display = 'none';
-      // 리뷰 존재 여부 경고
-      const selectedOption = animeSelect.options[animeSelect.selectedIndex];
-      if (selectedOption.dataset.hasReview === 'true') {
-        alert('⚠️ 이 애니에는 이미 리뷰가 있습니다. 리뷰는 애니당 1개만 등록 가능합니다.');
-      }
-    } else {
-      newAnimeFields.style.display = 'block';
-    }
+    `;
+    card.addEventListener('click', () => {
+      window.location.href = `/anime.html?id=${anime.id}`;
+    });
+    list.appendChild(card);
   });
-  
-  document.getElementById('review-form').addEventListener('submit', handleReviewSubmit);
-}
-
-function updateWriteFormForUser() {
-  renderWriteForm(cachedCategories, cachedAnimeList);
-}
-
-async function handleReviewSubmit(e) {
-  e.preventDefault();
-  
-  const form = e.target;
-  const formData = new FormData(form);
-  const user = getUser();
-  
-  const animeId = formData.get('animeId');
-  const selectedCategories = [];
-  form.querySelectorAll('input[name="categories"]:checked').forEach(cb => {
-    selectedCategories.push(cb.value);
-  });
-  
-  const data = {
-    tier: formData.get('tier'),
-    rating: parseFloat(formData.get('rating')),
-    oneLiner: formData.get('oneLiner'),
-    content: formData.get('content')
-  };
-  
-  if (user) {
-    data.userId = user.id;
-  } else {
-    data.author = formData.get('author') || '익명';
-    data.password = formData.get('password');
-  }
-  
-  if (animeId) {
-    data.animeId = parseInt(animeId);
-  } else {
-    data.animeTitle = formData.get('animeTitle');
-    data.animeCoverImage = formData.get('animeCoverImage');
-    data.categories = selectedCategories;
-    
-    if (!data.animeTitle) {
-      alert('새 애니 제목을 입력하세요.');
-      return;
-    }
-  }
-  
-  const result = await submitReview(data);
-  
-  if (result && result.id) {
-    alert('리뷰가 등록되었습니다!');
-    form.reset();
-    document.getElementById('new-anime-fields').style.display = 'block';
-    init();
-  } else {
-    alert('등록 실패: ' + (result?.error || '알 수 없는 오류'));
-  }
 }
 
 // ============================================
@@ -571,15 +454,17 @@ async function handleReviewSubmit(e) {
 async function init() {
   renderAuthHeader();
   
-  const [featured, categories, animeList] = await Promise.all([
+  const [featured, recentActivity, allAnime, categories] = await Promise.all([
     fetchFeatured(),
-    fetchCategories(),
-    fetchAnimeList()
+    fetchRecentActivity(),
+    fetchAllAnime(),
+    fetchCategories()
   ]);
   
   renderFeatured(featured);
+  renderRecentActivity(recentActivity);
+  renderAllAnime(allAnime);
   renderCategories(categories);
-  renderWriteForm(categories, animeList);
 }
 
 document.addEventListener('DOMContentLoaded', init);

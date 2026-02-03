@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>관리자 - AniLog</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">▶</span>
+        <span class="logo-text">AniLog</span>
+        <span class="admin-badge">관리자</span>
+      </a>
+      <div class="header-right" id="header-auth"></div>
+    </div>
+  </header>
+
+  <main class="main admin-main">
+    <div class="admin-container">
+      <h1 class="page-title">관리자 대시보드</h1>
+      
+      <!-- 통계 카드 -->
+      <div class="admin-stats" id="admin-stats">
+        <div class="stat-card">
+          <span class="stat-icon">👥</span>
+          <span class="stat-value" id="stat-users">-</span>
+          <span class="stat-label">유저</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">📺</span>
+          <span class="stat-value" id="stat-anime">-</span>
+          <span class="stat-label">애니</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">📝</span>
+          <span class="stat-value" id="stat-reviews">-</span>
+          <span class="stat-label">리뷰</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">💬</span>
+          <span class="stat-value" id="stat-comments">-</span>
+          <span class="stat-label">댓글</span>
+        </div>
+      </div>
+      
+      <!-- 탭 메뉴 -->
+      <div class="admin-tabs">
+        <button class="tab-btn active" onclick="showTab('anime')">애니 관리</button>
+        <button class="tab-btn" onclick="showTab('series')">시리즈 관리</button>
+        <button class="tab-btn" onclick="showTab('categories')">카테고리 관리</button>
+        <button class="tab-btn" onclick="showTab('users')">유저 관리</button>
+        <button class="tab-btn" onclick="showTab('reviews')">리뷰 관리</button>
+      </div>
+      
+      <!-- 탭 내용 -->
+      <div class="admin-content" id="admin-content">
+        <!-- JS로 렌더링 -->
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>© 2024 AniLog · 관리자 패널</p>
+  </footer>
+
+  <script src="admin.js"></script>
+</body>
+</html>
