@@ -516,6 +516,8 @@ async function handleAddAnime(e) {
   
   if (result.id) {
     closeModal();
+    window.adminAnimesLoaded = false;
+    adminData.anime.items = [];
     renderTabContent('anime');
     renderStats();
   } else {
@@ -576,6 +578,8 @@ async function handleEditAnime(e, id) {
   
   if (result.message) {
     closeModal();
+    window.adminAnimesLoaded = false;
+    adminData.anime.items = [];
     renderTabContent('anime');
   } else {
     alert(result.error || '수정 실패');
@@ -713,6 +717,8 @@ async function handleAddSeries(e) {
       await adminPut('series', result.id, { title, animeIds });
     }
     closeModal();
+    window.adminSeriesLoaded = false;
+    adminData.series.items = [];
     renderTabContent('series');
   } else {
     alert(result.error || '추가 실패');
@@ -765,6 +771,8 @@ async function handleEditSeries(e, id) {
   
   if (result.message) {
     closeModal();
+    window.adminSeriesLoaded = false;
+    adminData.series.items = [];
     renderTabContent('series');
   } else {
     alert(result.error || '수정 실패');
@@ -776,6 +784,8 @@ async function deleteSeries(id) {
   
   const result = await adminDelete('series', id);
   if (result.message) {
+    window.adminSeriesLoaded = false;
+    adminData.series.items = [];
     renderTabContent('series');
   } else {
     alert(result.error || '삭제 실패');
@@ -970,6 +980,8 @@ async function deleteCategory(id) {
   
   const result = await adminDelete('categories', id);
   if (result.message) {
+    window.adminCategoriesLoaded = false;
+    adminData.categories.items = [];
     renderTabContent('categories');
   } else {
     alert(result.error || '삭제 실패');
@@ -1040,6 +1052,8 @@ async function toggleAdmin(id, currentStatus) {
   
   const result = await adminPut('users', id, { isAdmin: !currentStatus });
   if (result.message) {
+    window.adminUsersLoaded = false;
+    adminData.users.items = [];
     renderTabContent('users');
   } else {
     alert(result.error || '수정 실패');
@@ -1057,6 +1071,8 @@ async function deleteUser(id) {
   
   const result = await adminDelete('users', id);
   if (result.message) {
+    window.adminUsersLoaded = false;
+    adminData.users.items = [];
     renderTabContent('users');
     renderStats();
   } else {
