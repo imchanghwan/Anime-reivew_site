@@ -180,7 +180,7 @@ function sortItems(items, sort, order) {
 
 function handleSearch(tab, value) {
   adminData[tab].search = value;
-  renderCurrentTab();
+  updateTableBody(tab);
 }
 
 function handleSort(tab, field) {
@@ -191,7 +191,152 @@ function handleSort(tab, field) {
     data.sort = field;
     data.order = 'asc';
   }
-  renderCurrentTab();
+  updateTableBody(tab);
+  updateTableHeader(tab);
+}
+
+function updateTableHeader(tab) {
+  const headers = document.querySelectorAll('.admin-table th.sortable');
+  headers.forEach(th => {
+    const onclick = th.getAttribute('onclick');
+    if (onclick && onclick.includes(`'${tab}'`)) {
+      const match = onclick.match(/handleSort\('(\w+)',\s*'(\w+)'\)/);
+      if (match) {
+        const field = match[2];
+        const text = th.textContent.replace(/ [▲▼]$/, '');
+        th.textContent = text + getSortIcon(tab, field);
+      }
+    }
+  });
+}
+
+function updateTableBody(tab) {
+  const data = adminData[tab];
+  const { search, sort, order, items } = data;
+  
+  let filtered;
+  switch (tab) {
+    case 'anime':
+      filtered = filterItems(items, search, ['title', 'parentTitle']);
+      break;
+    case 'series':
+      filtered = filterItems(items, search, ['title']);
+      break;
+    case 'categories':
+      filtered = filterItems(items, search, ['name', 'icon']);
+      break;
+    case 'users':
+      filtered = filterItems(items, search, ['username', 'nickname']);
+      break;
+    case 'reviews':
+      filtered = filterItems(items, search, ['animeTitle', 'authorName', 'oneLiner', 'tier']);
+      break;
+    default:
+      filtered = items;
+  }
+  
+  filtered = sortItems(filtered, sort, order);
+  
+  // 카운트 업데이트
+  const countEl = document.querySelector('.admin-section h2');
+  if (countEl) {
+    const label = tab === 'users' ? '명' : '개';
+    const name = { anime: '애니', series: '시리즈', categories: '카테고리', users: '유저', reviews: '리뷰' }[tab];
+    countEl.textContent = `${name} 목록 (${filtered.length}${label})`;
+  }
+  
+  // tbody 업데이트
+  const tbody = document.querySelector('.admin-table tbody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = getTableRows(tab, filtered);
+}
+
+function getTableRows(tab, items) {
+  switch (tab) {
+    case 'anime':
+      return items.map(a => `
+        <tr>
+          <td>${a.id}</td>
+          <td><img src="${a.coverImage || ''}" class="table-img" alt=""></td>
+          <td>${a.title}</td>
+          <td>${a.parentTitle || '-'}</td>
+          <td>${a.reviewCount}</td>
+          <td>
+            <button class="action-btn edit" onclick="openEditAnimeModal(${a.id})">수정</button>
+            <button class="action-btn delete" onclick="deleteAnime(${a.id})">삭제</button>
+          </td>
+        </tr>
+      `).join('');
+      
+    case 'series':
+      return items.map(s => `
+        <tr>
+          <td>${s.id}</td>
+          <td>${s.title}</td>
+          <td>
+            ${s.animes && s.animes.length > 0 
+              ? s.animes.map(a => `<span class="anime-tag">${a.title}</span>`).join(' ')
+              : '<span class="no-anime">없음</span>'}
+          </td>
+          <td>
+            <button class="action-btn edit" onclick="openEditSeriesModal(${s.id})">수정</button>
+            <button class="action-btn delete" onclick="deleteSeries(${s.id})">삭제</button>
+          </td>
+        </tr>
+      `).join('');
+      
+    case 'categories':
+      return items.map(c => `
+        <tr>
+          <td>${c.id}</td>
+          <td>${c.icon}</td>
+          <td>${c.name}</td>
+          <td>${c.sortOrder}</td>
+          <td>${c.animeCount}</td>
+          <td>
+            <button class="action-btn edit" onclick='openEditCategoryModal(${c.id}, "${c.name}", "${c.icon}", ${c.sortOrder})'>수정</button>
+            <button class="action-btn delete" onclick="deleteCategory(${c.id})">삭제</button>
+          </td>
+        </tr>
+      `).join('');
+      
+    case 'users':
+      return items.map(u => `
+        <tr>
+          <td>${u.id}</td>
+          <td>${u.username}</td>
+          <td>${u.nickname}</td>
+          <td>${u.isAdmin ? '✅' : ''}</td>
+          <td>${u.reviewCount}</td>
+          <td>${u.commentCount}</td>
+          <td>
+            <button class="action-btn edit" onclick="toggleAdmin(${u.id}, ${u.isAdmin})">${u.isAdmin ? '권한 해제' : '관리자 부여'}</button>
+            <button class="action-btn delete" onclick="deleteUser(${u.id})">삭제</button>
+          </td>
+        </tr>
+      `).join('');
+      
+    case 'reviews':
+      return items.map(r => `
+        <tr>
+          <td>${r.id}</td>
+          <td>${r.animeTitle || '-'}</td>
+          <td>${r.authorName || '-'}</td>
+          <td><span class="tier tier-${r.tier.toLowerCase()}">${r.tier}</span></td>
+          <td class="oneliner-cell">${r.oneLiner || ''}</td>
+          <td>${r.viewCount}</td>
+          <td>${r.commentCount}</td>
+          <td>
+            <a href="/review.html?id=${r.id}" class="action-btn edit" target="_blank">보기</a>
+            <button class="action-btn delete" onclick="deleteReview(${r.id})">삭제</button>
+          </td>
+        </tr>
+      `).join('');
+      
+    default:
+      return '';
+  }
 }
 
 function getSortIcon(tab, field) {
