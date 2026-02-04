@@ -317,7 +317,7 @@ async function renderReviewDetail(review) {
     
     <div class="vote-section">
       <button class="vote-btn up ${userVote === 'up' ? 'active' : ''}" onclick="handleVote('up')">
-        👍 추천 <span id="up-count">${review.upCount || 0}</span>
+        👍 개추 <span id="up-count">${review.upCount || 0}</span>
       </button>
       <button class="vote-btn down ${userVote === 'down' ? 'active' : ''}" onclick="handleVote('down')">
         👎 비추 <span id="down-count">${review.downCount || 0}</span>

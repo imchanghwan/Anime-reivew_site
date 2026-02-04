@@ -379,25 +379,26 @@ app.get('/api/featured', (req, res) => {
   );
 });
 
-// GET /api/recent-activity - 최근 24시간 내 리뷰/댓글 달린 애니
+// GET /api/recent-activity - 최근 활동 애니 (리뷰, 댓글, 추천 등)
 app.get('/api/recent-activity', (req, res) => {
-  // 24시간 전 시간
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  
   db.all(
-    `SELECT DISTINCT a.id, a.title, a.cover_image as coverImage,
-            MAX(COALESCE(r.created_at, c.created_at)) as lastActivity,
+    `SELECT a.id, a.title, a.cover_image as coverImage,
+            COALESCE(
+              MAX(r.created_at),
+              MAX(c.created_at),
+              MAX(rv.created_at)
+            ) as lastActivity,
             AVG(r2.rating) as avgRating
      FROM anime a
-     LEFT JOIN reviews r ON a.id = r.anime_id AND r.created_at > ?
-     LEFT JOIN reviews r3 ON a.id = r3.anime_id
-     LEFT JOIN comments c ON r3.id = c.review_id AND c.created_at > ?
+     LEFT JOIN reviews r ON a.id = r.anime_id
      LEFT JOIN reviews r2 ON a.id = r2.anime_id
-     WHERE r.id IS NOT NULL OR c.id IS NOT NULL
+     LEFT JOIN comments c ON r.id = c.review_id
+     LEFT JOIN review_votes rv ON r.id = rv.review_id
      GROUP BY a.id
+     HAVING lastActivity IS NOT NULL
      ORDER BY lastActivity DESC
      LIMIT 10`,
-    [since, since],
+    [],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -889,6 +890,31 @@ app.get('/api/reviews/:id/user-vote', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ vote: row?.vote_type || null });
   });
+});
+
+// GET /api/user-votes - 유저의 여러 리뷰 투표 상태 일괄 조회
+app.get('/api/user-votes', (req, res) => {
+  const { userId, reviewIds } = req.query;
+  
+  if (!userId || !reviewIds) return res.json({});
+  
+  const ids = reviewIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
+  if (ids.length === 0) return res.json({});
+  
+  const placeholders = ids.map(() => '?').join(',');
+  db.all(
+    `SELECT review_id, vote_type FROM review_votes WHERE user_id = ? AND review_id IN (${placeholders})`,
+    [userId, ...ids],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      const votes = {};
+      rows.forEach(r => {
+        votes[r.review_id] = r.vote_type;
+      });
+      res.json(votes);
+    }
+  );
 });
 
 // PUT /api/reviews/:id - 리뷰 수정

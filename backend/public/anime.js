@@ -7,6 +7,7 @@ const API = '/api';
 // 상태
 let currentAnimeId = null;
 let currentSort = 'votes'; // votes: 추천순, views: 조회순
+let userVotes = {}; // 유저의 투표 상태 저장
 
 // ============================================
 // 유틸리티
@@ -43,6 +44,16 @@ async function fetchAnimeReviews(animeId, sort = 'votes') {
   } catch (e) {
     console.error('API 실패:', e);
     return null;
+  }
+}
+
+async function fetchUserVotes(userId, reviewIds) {
+  if (!userId || reviewIds.length === 0) return {};
+  try {
+    const res = await fetch(`${API}/user-votes?userId=${userId}&reviewIds=${reviewIds.join(',')}`);
+    return await res.json();
+  } catch (e) {
+    return {};
   }
 }
 
@@ -106,6 +117,14 @@ async function renderAnimePage(data) {
   }
   
   const user = getUser();
+  
+  // 유저 투표 상태 가져오기
+  if (user && data.reviews && data.reviews.length > 0) {
+    const reviewIds = data.reviews.map(r => r.id);
+    userVotes = await fetchUserVotes(user.id, reviewIds);
+  } else {
+    userVotes = {};
+  }
   
   // 유저가 이미 리뷰를 작성했는지 확인
   const userReview = user && data.reviews ? data.reviews.find(r => r.userId === user.id) : null;
@@ -223,7 +242,7 @@ async function renderAnimePage(data) {
 function renderTopReviewCard(review, rank) {
   const initial = review.author.charAt(0).toUpperCase();
   const rankClass = `rank-${rank}`;
-  const user = getUser();
+  const isVoted = userVotes[review.id] === 'up';
   
   return `
     <div class="top-review-card ${rankClass}" onclick="goToReview(${review.id})">
@@ -239,7 +258,7 @@ function renderTopReviewCard(review, rank) {
         <div class="review-stats-row">
           <span class="stat-item">👁 ${review.viewCount || 0}</span>
           <span class="stat-item">💬 ${review.commentCount || 0}</span>
-          <button class="vote-inline-btn" onclick="event.stopPropagation(); handleVote(${review.id}, 'up')">
+          <button class="vote-inline-btn ${isVoted ? 'active' : ''}" onclick="event.stopPropagation(); handleVote(${review.id}, 'up')">
             👍 ${review.upCount || 0}
           </button>
         </div>
@@ -255,6 +274,7 @@ function renderTopReviewCard(review, rank) {
 // 4위 이후 리뷰 카드 (동일 크기)
 function renderReviewCard(review) {
   const initial = review.author.charAt(0).toUpperCase();
+  const isVoted = userVotes[review.id] === 'up';
   
   return `
     <div class="review-card" onclick="goToReview(${review.id})">
@@ -269,7 +289,7 @@ function renderReviewCard(review) {
         <div class="review-stats-row">
           <span class="stat-item">👁 ${review.viewCount || 0}</span>
           <span class="stat-item">💬 ${review.commentCount || 0}</span>
-          <button class="vote-inline-btn" onclick="event.stopPropagation(); handleVote(${review.id}, 'up')">
+          <button class="vote-inline-btn ${isVoted ? 'active' : ''}" onclick="event.stopPropagation(); handleVote(${review.id}, 'up')">
             👍 ${review.upCount || 0}
           </button>
         </div>
