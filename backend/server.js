@@ -1573,7 +1573,7 @@ app.delete('/api/admin/series/:id', checkAdmin, (req, res) => {
   });
 });
 
-// GET /api/admin/categories - 카테고리 목록
+// GET /api/admin/categories - 카테고리 목록 (연결된 애니 포함)
 app.get('/api/admin/categories', checkAdmin, (req, res) => {
   db.all(
     `SELECT c.id, c.name, c.icon, c.sort_order as sortOrder,
@@ -1581,16 +1581,46 @@ app.get('/api/admin/categories', checkAdmin, (req, res) => {
      FROM categories c
      ORDER BY c.sort_order`,
     [],
-    (err, rows) => {
+    (err, categories) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
+      
+      if (categories.length === 0) return res.json([]);
+      
+      // 각 카테고리별 연결된 애니 조회
+      const catIds = categories.map(c => c.id);
+      const placeholders = catIds.map(() => '?').join(',');
+      
+      db.all(
+        `SELECT ac.category_id, a.id, a.title
+         FROM anime_categories ac
+         JOIN anime a ON ac.anime_id = a.id
+         WHERE ac.category_id IN (${placeholders})
+         ORDER BY a.title`,
+        catIds,
+        (err, animeRows) => {
+          if (err) return res.json(categories);
+          
+          const animeMap = {};
+          animeRows.forEach(row => {
+            if (!animeMap[row.category_id]) animeMap[row.category_id] = [];
+            animeMap[row.category_id].push({ id: row.id, title: row.title });
+          });
+          
+          const result = categories.map(c => ({
+            ...c,
+            animes: animeMap[c.id] || []
+          }));
+          
+          res.json(result);
+        }
+      );
     }
   );
 });
 
 // POST /api/admin/categories - 카테고리 추가
 app.post('/api/admin/categories', checkAdmin, (req, res) => {
-  const { name, icon, sortOrder } = req.body;
+  const { name, icon, sortOrder, animeIds } = req.body;
   
   if (!name) return res.status(400).json({ error: '이름 필수' });
   
@@ -1602,14 +1632,24 @@ app.post('/api/admin/categories', checkAdmin, (req, res) => {
       }
       return res.status(500).json({ error: err.message });
     }
-    res.status(201).json({ id: this.lastID, message: '추가 완료' });
+    
+    const catId = this.lastID;
+    
+    // 애니 연결
+    if (animeIds && animeIds.length > 0) {
+      const stmt = db.prepare(`INSERT OR IGNORE INTO anime_categories (anime_id, category_id) VALUES (?, ?)`);
+      animeIds.forEach(animeId => stmt.run(animeId, catId));
+      stmt.finalize();
+    }
+    
+    res.status(201).json({ id: catId, message: '추가 완료' });
   });
 });
 
-// PUT /api/admin/categories/:id - 카테고리 수정
+// PUT /api/admin/categories/:id - 카테고리 수정 (애니 연결 포함)
 app.put('/api/admin/categories/:id', checkAdmin, (req, res) => {
   const { id } = req.params;
-  const { name, icon, sortOrder } = req.body;
+  const { name, icon, sortOrder, animeIds } = req.body;
   
   const updates = [];
   const params = [];
@@ -1618,13 +1658,34 @@ app.put('/api/admin/categories/:id', checkAdmin, (req, res) => {
   if (icon !== undefined) { updates.push('icon = ?'); params.push(icon); }
   if (sortOrder !== undefined) { updates.push('sort_order = ?'); params.push(sortOrder); }
   
-  if (updates.length === 0) return res.status(400).json({ error: '수정할 내용 없음' });
+  const doUpdate = () => {
+    if (updates.length > 0) {
+      params.push(id);
+      db.run(`UPDATE categories SET ${updates.join(', ')} WHERE id = ?`, params, function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: '수정 완료' });
+      });
+    } else {
+      res.json({ message: '수정 완료' });
+    }
+  };
   
-  params.push(id);
-  db.run(`UPDATE categories SET ${updates.join(', ')} WHERE id = ?`, params, function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: '수정 완료' });
-  });
+  // 애니 연결 업데이트
+  if (animeIds !== undefined) {
+    db.run(`DELETE FROM anime_categories WHERE category_id = ?`, [id], (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      if (animeIds.length > 0) {
+        const stmt = db.prepare(`INSERT INTO anime_categories (anime_id, category_id) VALUES (?, ?)`);
+        animeIds.forEach(animeId => stmt.run(animeId, id));
+        stmt.finalize(() => doUpdate());
+      } else {
+        doUpdate();
+      }
+    });
+  } else {
+    doUpdate();
+  }
 });
 
 // DELETE /api/admin/categories/:id - 카테고리 삭제

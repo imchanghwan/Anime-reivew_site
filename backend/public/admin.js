@@ -295,7 +295,7 @@ function getTableRows(tab, items) {
           <td>${c.sortOrder}</td>
           <td>${c.animeCount}</td>
           <td>
-            <button class="action-btn edit" onclick='openEditCategoryModal(${c.id}, "${c.name}", "${c.icon}", ${c.sortOrder})'>수정</button>
+            <button class="action-btn edit" onclick='openEditCategoryModal(${c.id})'>수정</button>
             <button class="action-btn delete" onclick="deleteCategory(${c.id})">삭제</button>
           </td>
         </tr>
@@ -660,8 +660,8 @@ async function renderSeriesTab(container) {
 
 function openAddSeriesModal() {
   const animes = window.allAnimesForSeries || [];
-  // 시리즈에 연결되지 않은 애니만
-  const availableAnimes = animes.filter(a => !a.parentId);
+  // 시리즈에 연결되지 않은 애니만, 이름순 정렬
+  const availableAnimes = animes.filter(a => !a.parentId).sort((a, b) => a.title.localeCompare(b.title));
   
   openModal('새 시리즈 추가', `
     <form onsubmit="handleAddSeries(event)">
@@ -671,10 +671,11 @@ function openAddSeriesModal() {
       </div>
       <div class="form-group">
         <label>연결할 애니</label>
-        <div class="anime-checkbox-list">
+        <input type="text" class="anime-search-input" placeholder="애니 검색..." oninput="filterAnimeCheckboxes(this.value)">
+        <div class="anime-checkbox-list" id="anime-checkbox-list">
           ${availableAnimes.length > 0 
             ? availableAnimes.map(a => `
-                <label class="checkbox-label">
+                <label class="checkbox-label" data-title="${a.title.toLowerCase()}">
                   <input type="checkbox" name="animes" value="${a.id}"> ${a.title}
                 </label>
               `).join('')
@@ -687,6 +688,15 @@ function openAddSeriesModal() {
       </div>
     </form>
   `);
+}
+
+function filterAnimeCheckboxes(query) {
+  const q = query.toLowerCase();
+  const labels = document.querySelectorAll('#anime-checkbox-list .checkbox-label');
+  labels.forEach(label => {
+    const title = label.dataset.title || '';
+    label.style.display = title.includes(q) ? '' : 'none';
+  });
 }
 
 async function handleAddSeries(e) {
@@ -714,8 +724,9 @@ function openEditSeriesModal(id) {
   const animes = window.allAnimesForSeries || [];
   const connectedIds = (series.animes || []).map(a => a.id);
   
-  // 현재 시리즈에 연결된 애니 + 연결되지 않은 애니
-  const availableAnimes = animes.filter(a => !a.parentId || connectedIds.includes(a.id));
+  // 현재 시리즈에 연결된 애니 + 연결되지 않은 애니, 이름순 정렬
+  const availableAnimes = animes.filter(a => !a.parentId || connectedIds.includes(a.id))
+    .sort((a, b) => a.title.localeCompare(b.title));
   
   openModal('시리즈 수정', `
     <form onsubmit="handleEditSeries(event, ${id})">
@@ -725,10 +736,11 @@ function openEditSeriesModal(id) {
       </div>
       <div class="form-group">
         <label>연결할 애니</label>
-        <div class="anime-checkbox-list">
+        <input type="text" class="anime-search-input" placeholder="애니 검색..." oninput="filterAnimeCheckboxes(this.value)">
+        <div class="anime-checkbox-list" id="anime-checkbox-list">
           ${availableAnimes.length > 0 
             ? availableAnimes.map(a => `
-                <label class="checkbox-label">
+                <label class="checkbox-label" data-title="${a.title.toLowerCase()}">
                   <input type="checkbox" name="animes" value="${a.id}" ${connectedIds.includes(a.id) ? 'checked' : ''}> ${a.title}
                 </label>
               `).join('')
@@ -779,6 +791,10 @@ async function renderCategoriesTab(container) {
   
   if (adminData.categories.items.length === 0 || !window.adminCategoriesLoaded) {
     adminData.categories.items = await fetchAdminData('categories');
+    // 애니 목록도 로드 (카테고리 모달에서 사용)
+    if (!window.allAnimesForSeries) {
+      window.allAnimesForSeries = await fetchAdminData('anime');
+    }
     window.adminCategoriesLoaded = true;
   }
   
@@ -816,7 +832,7 @@ async function renderCategoriesTab(container) {
               <td>${c.sortOrder}</td>
               <td>${c.animeCount}</td>
               <td>
-                <button class="action-btn edit" onclick='openEditCategoryModal(${c.id}, "${c.name}", "${c.icon}", ${c.sortOrder})'>수정</button>
+                <button class="action-btn edit" onclick='openEditCategoryModal(${c.id})'>수정</button>
                 <button class="action-btn delete" onclick="deleteCategory(${c.id})">삭제</button>
               </td>
             </tr>
@@ -828,6 +844,9 @@ async function renderCategoriesTab(container) {
 }
 
 function openAddCategoryModal() {
+  const animes = window.allAnimesForSeries || adminData.anime.items || [];
+  const sortedAnimes = [...animes].sort((a, b) => a.title.localeCompare(b.title));
+  
   openModal('새 카테고리 추가', `
     <form onsubmit="handleAddCategory(event)">
       <div class="form-group">
@@ -841,6 +860,19 @@ function openAddCategoryModal() {
       <div class="form-group">
         <label>정렬 순서</label>
         <input type="number" id="modal-order" value="0">
+      </div>
+      <div class="form-group">
+        <label>연결할 애니 (중복 가능)</label>
+        <input type="text" class="anime-search-input" placeholder="애니 검색..." oninput="filterAnimeCheckboxes(this.value)">
+        <div class="anime-checkbox-list" id="anime-checkbox-list">
+          ${sortedAnimes.length > 0 
+            ? sortedAnimes.map(a => `
+                <label class="checkbox-label" data-title="${a.title.toLowerCase()}">
+                  <input type="checkbox" name="animes" value="${a.id}"> ${a.title}
+                </label>
+              `).join('')
+            : '<p class="no-anime">애니가 없습니다</p>'}
+        </div>
       </div>
       <div class="modal-actions">
         <button type="button" class="cancel-btn" onclick="closeModal()">취소</button>
@@ -856,31 +888,54 @@ async function handleAddCategory(e) {
   const name = document.getElementById('modal-name').value;
   const icon = document.getElementById('modal-icon').value;
   const sortOrder = parseInt(document.getElementById('modal-order').value) || 0;
+  const animeIds = Array.from(document.querySelectorAll('input[name="animes"]:checked')).map(cb => parseInt(cb.value));
   
-  const result = await adminPost('categories', { name, icon, sortOrder });
+  const result = await adminPost('categories', { name, icon, sortOrder, animeIds });
   
   if (result.id) {
     closeModal();
+    window.adminCategoriesLoaded = false;
+    adminData.categories.items = [];
     renderTabContent('categories');
   } else {
     alert(result.error || '추가 실패');
   }
 }
 
-function openEditCategoryModal(id, name, icon, sortOrder) {
+function openEditCategoryModal(id) {
+  const category = adminData.categories.items.find(c => c.id === id);
+  if (!category) return;
+  
+  const animes = window.allAnimesForSeries || adminData.anime.items || [];
+  const sortedAnimes = [...animes].sort((a, b) => a.title.localeCompare(b.title));
+  const connectedIds = (category.animes || []).map(a => a.id);
+  
   openModal('카테고리 수정', `
     <form onsubmit="handleEditCategory(event, ${id})">
       <div class="form-group">
         <label>이름</label>
-        <input type="text" id="modal-name" value="${name}" required>
+        <input type="text" id="modal-name" value="${category.name}" required>
       </div>
       <div class="form-group">
         <label>아이콘 (이모지)</label>
-        <input type="text" id="modal-icon" value="${icon}">
+        <input type="text" id="modal-icon" value="${category.icon}">
       </div>
       <div class="form-group">
         <label>정렬 순서</label>
-        <input type="number" id="modal-order" value="${sortOrder}">
+        <input type="number" id="modal-order" value="${category.sortOrder}">
+      </div>
+      <div class="form-group">
+        <label>연결할 애니 (중복 가능)</label>
+        <input type="text" class="anime-search-input" placeholder="애니 검색..." oninput="filterAnimeCheckboxes(this.value)">
+        <div class="anime-checkbox-list" id="anime-checkbox-list">
+          ${sortedAnimes.length > 0 
+            ? sortedAnimes.map(a => `
+                <label class="checkbox-label" data-title="${a.title.toLowerCase()}">
+                  <input type="checkbox" name="animes" value="${a.id}" ${connectedIds.includes(a.id) ? 'checked' : ''}> ${a.title}
+                </label>
+              `).join('')
+            : '<p class="no-anime">애니가 없습니다</p>'}
+        </div>
       </div>
       <div class="modal-actions">
         <button type="button" class="cancel-btn" onclick="closeModal()">취소</button>
@@ -896,11 +951,14 @@ async function handleEditCategory(e, id) {
   const name = document.getElementById('modal-name').value;
   const icon = document.getElementById('modal-icon').value;
   const sortOrder = parseInt(document.getElementById('modal-order').value) || 0;
+  const animeIds = Array.from(document.querySelectorAll('input[name="animes"]:checked')).map(cb => parseInt(cb.value));
   
-  const result = await adminPut('categories', id, { name, icon, sortOrder });
+  const result = await adminPut('categories', id, { name, icon, sortOrder, animeIds });
   
   if (result.message) {
     closeModal();
+    window.adminCategoriesLoaded = false;
+    adminData.categories.items = [];
     renderTabContent('categories');
   } else {
     alert(result.error || '수정 실패');

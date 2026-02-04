@@ -2921,3 +2921,21 @@ a {
     align-items: stretch !important;
   }
 }
+
+/* ========================================
+   Admin Modal - Anime Search
+======================================== */
+.anime-search-input {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-xs);
+  box-sizing: border-box;
+}
+
+.anime-search-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
