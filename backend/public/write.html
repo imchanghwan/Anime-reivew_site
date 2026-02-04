@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>리뷰 작성 - AniLog</title>
+  <title>리뷰 작성 - 오덕후</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,8 +15,13 @@
     <div class="header-inner">
       <a href="/" class="logo">
         <span class="logo-icon">▶</span>
-        <span class="logo-text">AniLog</span>
+        <span class="logo-text">오덕후</span>
       </a>
+      <div class="header-search">
+        <input type="text" id="header-anime-search" class="header-search-input" placeholder="애니 검색..." 
+               oninput="handleHeaderSearch(this.value)" onfocus="showHeaderSearchResults()" onblur="hideHeaderSearchResultsDelayed()">
+        <div class="search-results" id="header-search-results"></div>
+      </div>
       <div class="header-right" id="header-auth"></div>
     </div>
   </header>
@@ -84,7 +89,7 @@
   </main>
 
   <footer class="footer">
-    <p>© 2024 AniLog · 친구들과 함께하는 애니 리뷰</p>
+    <p>© 2026 오덕후 · 애니 리뷰 커뮤니티</p>
   </footer>
 
   <script src="write.js"></script>
