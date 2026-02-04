@@ -476,14 +476,17 @@ a {
   gap: var(--space-lg);
 }
 
-/* Featured Card */
+/* Featured Card - 가로형 */
 .featured-card {
   background-color: var(--color-white);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   overflow: hidden;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: var(--space-md);
+  gap: var(--space-md);
   transition: transform var(--transition-normal), box-shadow var(--transition-normal);
 }
 
@@ -493,16 +496,19 @@ a {
 }
 
 .featured-poster {
-  width: 100%;
+  width: 100px;
   aspect-ratio: 2 / 3;
   overflow: hidden;
   background-color: var(--color-border);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
 
 .featured-poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: var(--radius-sm);
   transition: transform var(--transition-normal);
 }
 
@@ -511,10 +517,12 @@ a {
 }
 
 .featured-content {
-  padding: var(--space-lg);
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
 }
 
 .featured-header {
@@ -525,7 +533,7 @@ a {
 
 .featured-title {
   flex: 1;
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--color-text-primary);
   white-space: nowrap;
@@ -3029,37 +3037,23 @@ a {
   
   .featured-grid {
     grid-template-columns: 1fr;
-    gap: var(--space-md);
+    gap: var(--space-sm);
   }
   
   .featured-card {
-    flex-direction: row;
     padding: var(--space-sm);
-    align-items: flex-start;
   }
   
   .featured-poster {
-    width: 90px;
-    aspect-ratio: 2 / 3;
-    height: auto;
-    flex-shrink: 0;
-    border-radius: var(--radius-sm);
-  }
-  
-  .featured-poster img {
-    width: 100%;
-    height: 100%;
-    border-radius: var(--radius-sm);
+    width: 80px;
   }
   
   .featured-content {
-    padding: var(--space-xs);
-    flex: 1;
-    min-width: 0;
+    padding: 0;
   }
   
   .featured-title {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
   }
   
   .featured-quote {
@@ -3227,9 +3221,11 @@ a {
 
 .search-result-info {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-xs);
   min-width: 0;
+  flex: 1;
 }
 
 .search-result-title {

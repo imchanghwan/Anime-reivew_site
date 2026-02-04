@@ -1,5 +1,5 @@
 /**
- * AniLog - 애니 상세 페이지 (리뷰 리스트)
+ * 오덕후 - 애니 상세 페이지 (리뷰 리스트)
  */
 
 const API = '/api';
@@ -571,8 +571,74 @@ async function init() {
     return;
   }
   
+  // 검색용 애니 목록 로드
+  loadAnimeListForSearch();
+  
   const data = await fetchAnimeReviews(currentAnimeId, currentSort);
   renderAnimePage(data);
+}
+
+// ============================================
+// 헤더 검색 기능
+// ============================================
+let searchTimeout = null;
+
+async function loadAnimeListForSearch() {
+  try {
+    const res = await fetch(`${API}/all-anime`);
+    window.allAnimeList = await res.json();
+  } catch (e) {
+    window.allAnimeList = [];
+  }
+}
+
+function handleAnimeSearch(query) {
+  clearTimeout(searchTimeout);
+  
+  const resultsContainer = document.getElementById('search-results');
+  if (!resultsContainer) return;
+  
+  if (!query || query.length < 1) {
+    resultsContainer.innerHTML = '';
+    resultsContainer.style.display = 'none';
+    return;
+  }
+  
+  searchTimeout = setTimeout(() => {
+    const animes = window.allAnimeList || [];
+    const q = query.toLowerCase();
+    const filtered = animes.filter(a => a.title.toLowerCase().includes(q)).slice(0, 8);
+    
+    if (filtered.length === 0) {
+      resultsContainer.innerHTML = '<div class="search-no-result">검색 결과가 없습니다</div>';
+    } else {
+      resultsContainer.innerHTML = filtered.map(a => `
+        <a href="/anime.html?id=${a.id}" class="search-result-item">
+          <img src="${a.coverImage || ''}" alt="" class="search-result-img">
+          <div class="search-result-info">
+            ${a.tier ? `<span class="tier tier-${a.tier.toLowerCase()} tier-small">${a.tier}</span>` : ''}
+            <span class="search-result-title">${a.title}</span>
+          </div>
+        </a>
+      `).join('');
+    }
+    resultsContainer.style.display = 'block';
+  }, 150);
+}
+
+function showSearchResults() {
+  const input = document.getElementById('anime-search');
+  const resultsContainer = document.getElementById('search-results');
+  if (input && input.value && resultsContainer && resultsContainer.innerHTML) {
+    resultsContainer.style.display = 'block';
+  }
+}
+
+function hideSearchResultsDelayed() {
+  setTimeout(() => {
+    const resultsContainer = document.getElementById('search-results');
+    if (resultsContainer) resultsContainer.style.display = 'none';
+  }, 200);
 }
 
 document.addEventListener('DOMContentLoaded', init);
