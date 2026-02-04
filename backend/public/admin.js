@@ -200,14 +200,16 @@ function getSortIcon(tab, field) {
   return data.order === 'asc' ? ' ▲' : ' ▼';
 }
 
-function renderCurrentTab() {
+async function renderCurrentTab() {
   const container = document.getElementById('tab-content');
+  if (!container) return;
+  
   switch (currentTab) {
-    case 'anime': renderAnimeTab(container); break;
-    case 'series': renderSeriesTab(container); break;
-    case 'categories': renderCategoriesTab(container); break;
-    case 'users': renderUsersTab(container); break;
-    case 'reviews': renderReviewsTab(container); break;
+    case 'anime': await renderAnimeTab(container); break;
+    case 'series': await renderSeriesTab(container); break;
+    case 'categories': await renderCategoriesTab(container); break;
+    case 'users': await renderUsersTab(container); break;
+    case 'reviews': await renderReviewsTab(container); break;
   }
 }
 
@@ -260,6 +262,9 @@ async function renderTabContent(tab) {
 // 애니 관리 탭
 // ============================================
 async function renderAnimeTab(container) {
+  if (!container) container = document.getElementById('tab-content');
+  if (!container) return;
+  
   // 데이터 로드 (최초 1회)
   if (adminData.anime.items.length === 0 || !window.adminAnimesLoaded) {
     adminData.anime.items = await fetchAdminData('anime');
@@ -452,6 +457,9 @@ async function deleteAnime(id) {
 let allSeriesData = [];
 
 async function renderSeriesTab(container) {
+  if (!container) container = document.getElementById('tab-content');
+  if (!container) return;
+  
   if (adminData.series.items.length === 0 || !window.adminSeriesLoaded) {
     adminData.series.items = await fetchAdminData('series');
     window.allAnimesForSeries = await fetchAdminData('anime');
@@ -621,6 +629,9 @@ async function deleteSeries(id) {
 // 카테고리 관리 탭
 // ============================================
 async function renderCategoriesTab(container) {
+  if (!container) container = document.getElementById('tab-content');
+  if (!container) return;
+  
   if (adminData.categories.items.length === 0 || !window.adminCategoriesLoaded) {
     adminData.categories.items = await fetchAdminData('categories');
     window.adminCategoriesLoaded = true;
@@ -766,6 +777,9 @@ async function deleteCategory(id) {
 // 유저 관리 탭
 // ============================================
 async function renderUsersTab(container) {
+  if (!container) container = document.getElementById('tab-content');
+  if (!container) return;
+  
   if (adminData.users.items.length === 0 || !window.adminUsersLoaded) {
     adminData.users.items = await fetchAdminData('users');
     window.adminUsersLoaded = true;
@@ -851,6 +865,9 @@ async function deleteUser(id) {
 // 리뷰 관리 탭
 // ============================================
 async function renderReviewsTab(container) {
+  if (!container) container = document.getElementById('tab-content');
+  if (!container) return;
+  
   if (adminData.reviews.items.length === 0 || !window.adminReviewsLoaded) {
     adminData.reviews.items = await fetchAdminData('reviews');
     window.adminReviewsLoaded = true;
