@@ -2939,3 +2939,222 @@ a {
   outline: none;
   border-color: var(--color-accent);
 }
+
+/* ========================================
+   Floating Write Button
+======================================== */
+.floating-write-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--color-accent) 0%, #d97706 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+  z-index: 90;
+  transition: all var(--transition-fast);
+}
+
+.floating-write-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+}
+
+.floating-write-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .floating-write-btn {
+    bottom: 16px;
+    right: 16px;
+    padding: 12px 16px;
+    font-size: 0.875rem;
+  }
+  
+  .floating-write-text {
+    display: none;
+  }
+  
+  .floating-write-btn {
+    padding: 14px;
+    border-radius: 50%;
+    font-size: 1.25rem;
+  }
+}
+
+/* ========================================
+   Mobile UI Improvements - Main Page
+======================================== */
+@media (max-width: 768px) {
+  /* Header 모바일 */
+  .header-inner {
+    padding: var(--space-sm) var(--space-md);
+  }
+  
+  .logo-text {
+    font-size: 1.125rem;
+  }
+  
+  .user-nickname {
+    display: none;
+  }
+  
+  .auth-btn {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8125rem;
+  }
+  
+  /* 섹션 타이틀 */
+  .section-title {
+    font-size: 1.125rem;
+    padding: 0 var(--space-md);
+  }
+  
+  .section-subtitle {
+    font-size: 0.75rem;
+    padding: 0 var(--space-md);
+  }
+  
+  /* Featured 섹션 */
+  .featured-section {
+    padding: var(--space-md);
+  }
+  
+  .featured-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+  
+  .featured-card {
+    flex-direction: row;
+    padding: var(--space-sm);
+  }
+  
+  .featured-poster {
+    width: 80px;
+    height: 110px;
+    flex-shrink: 0;
+  }
+  
+  .featured-poster img {
+    width: 80px;
+    height: 110px;
+  }
+  
+  .featured-content {
+    padding: var(--space-xs);
+  }
+  
+  .featured-title {
+    font-size: 0.9375rem;
+  }
+  
+  .featured-quote {
+    font-size: 0.75rem;
+    -webkit-line-clamp: 2;
+  }
+  
+  /* 최근 업데이트 섹션 */
+  .recent-activity-section {
+    padding: var(--space-md) 0;
+  }
+  
+  .recent-activity-list {
+    padding: 0 var(--space-md);
+    gap: var(--space-sm);
+  }
+  
+  .recent-activity-card {
+    width: 90px;
+  }
+  
+  .recent-activity-img {
+    width: 90px;
+    height: 126px;
+  }
+  
+  .recent-activity-title {
+    font-size: 0.6875rem;
+  }
+  
+  /* 모든 애니 섹션 */
+  .all-anime-section {
+    padding: var(--space-md);
+  }
+  
+  .all-anime-list {
+    gap: var(--space-sm);
+  }
+  
+  .all-anime-card {
+    width: calc(25% - 6px);
+    min-width: 70px;
+  }
+  
+  .all-anime-img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 5/7;
+  }
+  
+  .all-anime-title {
+    font-size: 0.625rem;
+  }
+  
+  /* 카테고리 섹션 */
+  .category-block {
+    padding: var(--space-md);
+  }
+  
+  .category-title {
+    font-size: 1rem;
+    margin-bottom: var(--space-sm);
+  }
+  
+  .category-list {
+    gap: var(--space-sm);
+  }
+  
+  .list-card {
+    width: 110px;
+    min-width: 110px;
+  }
+  
+  .list-poster {
+    height: 150px;
+  }
+  
+  .list-title {
+    font-size: 0.75rem;
+  }
+  
+  /* Footer */
+  .footer {
+    padding: var(--space-md);
+    font-size: 0.75rem;
+  }
+}
+
+/* 매우 작은 화면 */
+@media (max-width: 400px) {
+  .all-anime-card {
+    width: calc(33.33% - 6px);
+  }
+  
+  .featured-poster {
+    width: 70px;
+    height: 98px;
+  }
+  
+  .featured-poster img {
+    width: 70px;
+    height: 98px;
+  }
+}

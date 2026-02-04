@@ -1,5 +1,5 @@
 /**
- * AniLog - 메인 페이지
+ * 오덕후 - 메인 페이지
  */
 
 const API = '/api';
@@ -97,6 +97,7 @@ function renderAuthHeader() {
   if (!container) return;
   
   const user = getUser();
+  const floatingBtn = document.getElementById('floating-write-btn');
   
   if (user) {
     const initial = user.nickname.charAt(0).toUpperCase();
@@ -111,11 +112,15 @@ function renderAuthHeader() {
         <button class="auth-btn" onclick="handleLogout()">로그아웃</button>
       </div>
     `;
+    // 플로팅 버튼 표시
+    if (floatingBtn) floatingBtn.style.display = 'flex';
   } else {
     container.innerHTML = `
       <button class="auth-btn" onclick="showLoginModal()">로그인</button>
       <button class="auth-btn primary" onclick="showRegisterModal()">회원가입</button>
     `;
+    // 플로팅 버튼 숨김
+    if (floatingBtn) floatingBtn.style.display = 'none';
   }
 }
 
