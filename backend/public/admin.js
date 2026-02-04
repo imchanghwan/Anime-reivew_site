@@ -4,6 +4,15 @@
 const API = '/api';
 let currentTab = 'anime';
 
+// 각 탭별 데이터, 검색어, 정렬 상태
+let adminData = {
+  anime: { items: [], search: '', sort: 'id', order: 'desc' },
+  series: { items: [], search: '', sort: 'id', order: 'desc' },
+  categories: { items: [], search: '', sort: 'sortOrder', order: 'asc' },
+  users: { items: [], search: '', sort: 'id', order: 'desc' },
+  reviews: { items: [], search: '', sort: 'id', order: 'desc' }
+};
+
 // ============================================
 // 인증
 // ============================================
@@ -135,6 +144,74 @@ async function adminDelete(endpoint, id) {
 }
 
 // ============================================
+// 검색/정렬 유틸리티
+// ============================================
+function filterItems(items, search, fields) {
+  if (!search) return items;
+  const q = search.toLowerCase();
+  return items.filter(item => 
+    fields.some(field => {
+      const val = item[field];
+      return val && String(val).toLowerCase().includes(q);
+    })
+  );
+}
+
+function sortItems(items, sort, order) {
+  return [...items].sort((a, b) => {
+    let aVal = a[sort];
+    let bVal = b[sort];
+    
+    // 숫자 비교
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return order === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+    
+    // 문자열 비교
+    aVal = String(aVal || '').toLowerCase();
+    bVal = String(bVal || '').toLowerCase();
+    if (order === 'asc') {
+      return aVal.localeCompare(bVal);
+    } else {
+      return bVal.localeCompare(aVal);
+    }
+  });
+}
+
+function handleSearch(tab, value) {
+  adminData[tab].search = value;
+  renderCurrentTab();
+}
+
+function handleSort(tab, field) {
+  const data = adminData[tab];
+  if (data.sort === field) {
+    data.order = data.order === 'asc' ? 'desc' : 'asc';
+  } else {
+    data.sort = field;
+    data.order = 'asc';
+  }
+  renderCurrentTab();
+}
+
+function getSortIcon(tab, field) {
+  const data = adminData[tab];
+  if (data.sort !== field) return '';
+  return data.order === 'asc' ? ' ▲' : ' ▼';
+}
+
+function renderCurrentTab() {
+  const container = document.getElementById('tab-content');
+  switch (currentTab) {
+    case 'anime': renderAnimeTab(container); break;
+    case 'series': renderSeriesTab(container); break;
+    case 'categories': renderCategoriesTab(container); break;
+    case 'users': renderUsersTab(container); break;
+    case 'reviews': renderReviewsTab(container); break;
+  }
+}
+
+// ============================================
 // 통계 렌더링
 // ============================================
 async function renderStats() {
@@ -183,33 +260,43 @@ async function renderTabContent(tab) {
 // 애니 관리 탭
 // ============================================
 async function renderAnimeTab(container) {
-  const animes = await fetchAdminData('anime');
-  const categories = await fetchAdminData('categories');
-  const series = await fetchAdminData('series');
+  // 데이터 로드 (최초 1회)
+  if (adminData.anime.items.length === 0 || !window.adminAnimesLoaded) {
+    adminData.anime.items = await fetchAdminData('anime');
+    window.adminCategories = await fetchAdminData('categories');
+    window.adminSeries = await fetchAdminData('series');
+    window.adminAnimesLoaded = true;
+  }
   
-  window.adminCategories = categories;
-  window.adminSeries = series;
-  window.adminAnimes = animes;
+  window.adminAnimes = adminData.anime.items;
+  
+  const { search, sort, order } = adminData.anime;
+  let items = filterItems(adminData.anime.items, search, ['title', 'parentTitle']);
+  items = sortItems(items, sort, order);
   
   container.innerHTML = `
     <div class="admin-section">
       <div class="section-header">
-        <h2>애니 목록 (${animes.length}개)</h2>
-        <button class="add-btn" onclick="openAddAnimeModal()">+ 새 애니</button>
+        <h2>애니 목록 (${items.length}개)</h2>
+        <div class="header-actions">
+          <input type="text" class="search-input" placeholder="제목, 시리즈 검색..." 
+                 value="${search}" oninput="handleSearch('anime', this.value)">
+          <button class="add-btn" onclick="openAddAnimeModal()">+ 새 애니</button>
+        </div>
       </div>
       <table class="admin-table">
         <thead>
           <tr>
-            <th>ID</th>
+            <th class="sortable" onclick="handleSort('anime', 'id')">ID${getSortIcon('anime', 'id')}</th>
             <th>커버</th>
-            <th>제목</th>
-            <th>시리즈</th>
-            <th>리뷰</th>
+            <th class="sortable" onclick="handleSort('anime', 'title')">제목${getSortIcon('anime', 'title')}</th>
+            <th class="sortable" onclick="handleSort('anime', 'parentTitle')">시리즈${getSortIcon('anime', 'parentTitle')}</th>
+            <th class="sortable" onclick="handleSort('anime', 'reviewCount')">리뷰${getSortIcon('anime', 'reviewCount')}</th>
             <th>액션</th>
           </tr>
         </thead>
         <tbody>
-          ${animes.map(a => `
+          ${items.map(a => `
             <tr>
               <td>${a.id}</td>
               <td><img src="${a.coverImage || ''}" class="table-img" alt=""></td>
@@ -350,6 +437,8 @@ async function deleteAnime(id) {
   
   const result = await adminDelete('anime', id);
   if (result.message) {
+    window.adminAnimesLoaded = false;
+    adminData.anime.items = [];
     renderTabContent('anime');
     renderStats();
   } else {
@@ -363,29 +452,39 @@ async function deleteAnime(id) {
 let allSeriesData = [];
 
 async function renderSeriesTab(container) {
-  const series = await fetchAdminData('series');
-  const animes = await fetchAdminData('anime');
+  if (adminData.series.items.length === 0 || !window.adminSeriesLoaded) {
+    adminData.series.items = await fetchAdminData('series');
+    window.allAnimesForSeries = await fetchAdminData('anime');
+    window.adminSeriesLoaded = true;
+  }
   
-  allSeriesData = series;
-  window.allAnimesForSeries = animes;
+  allSeriesData = adminData.series.items;
+  
+  const { search, sort, order } = adminData.series;
+  let items = filterItems(adminData.series.items, search, ['title']);
+  items = sortItems(items, sort, order);
   
   container.innerHTML = `
     <div class="admin-section">
       <div class="section-header">
-        <h2>시리즈 목록 (${series.length}개)</h2>
-        <button class="add-btn" onclick="openAddSeriesModal()">+ 새 시리즈</button>
+        <h2>시리즈 목록 (${items.length}개)</h2>
+        <div class="header-actions">
+          <input type="text" class="search-input" placeholder="시리즈 이름 검색..." 
+                 value="${search}" oninput="handleSearch('series', this.value)">
+          <button class="add-btn" onclick="openAddSeriesModal()">+ 새 시리즈</button>
+        </div>
       </div>
       <table class="admin-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>제목</th>
+            <th class="sortable" onclick="handleSort('series', 'id')">ID${getSortIcon('series', 'id')}</th>
+            <th class="sortable" onclick="handleSort('series', 'title')">제목${getSortIcon('series', 'title')}</th>
             <th>연결된 애니</th>
             <th>액션</th>
           </tr>
         </thead>
         <tbody>
-          ${series.map(s => `
+          ${items.map(s => `
             <tr>
               <td>${s.id}</td>
               <td>${s.title}</td>
@@ -522,27 +621,38 @@ async function deleteSeries(id) {
 // 카테고리 관리 탭
 // ============================================
 async function renderCategoriesTab(container) {
-  const categories = await fetchAdminData('categories');
+  if (adminData.categories.items.length === 0 || !window.adminCategoriesLoaded) {
+    adminData.categories.items = await fetchAdminData('categories');
+    window.adminCategoriesLoaded = true;
+  }
+  
+  const { search, sort, order } = adminData.categories;
+  let items = filterItems(adminData.categories.items, search, ['name', 'icon']);
+  items = sortItems(items, sort, order);
   
   container.innerHTML = `
     <div class="admin-section">
       <div class="section-header">
-        <h2>카테고리 목록 (${categories.length}개)</h2>
-        <button class="add-btn" onclick="openAddCategoryModal()">+ 새 카테고리</button>
+        <h2>카테고리 목록 (${items.length}개)</h2>
+        <div class="header-actions">
+          <input type="text" class="search-input" placeholder="이름 검색..." 
+                 value="${search}" oninput="handleSearch('categories', this.value)">
+          <button class="add-btn" onclick="openAddCategoryModal()">+ 새 카테고리</button>
+        </div>
       </div>
       <table class="admin-table">
         <thead>
           <tr>
-            <th>ID</th>
+            <th class="sortable" onclick="handleSort('categories', 'id')">ID${getSortIcon('categories', 'id')}</th>
             <th>아이콘</th>
-            <th>이름</th>
-            <th>순서</th>
-            <th>애니 수</th>
+            <th class="sortable" onclick="handleSort('categories', 'name')">이름${getSortIcon('categories', 'name')}</th>
+            <th class="sortable" onclick="handleSort('categories', 'sortOrder')">순서${getSortIcon('categories', 'sortOrder')}</th>
+            <th class="sortable" onclick="handleSort('categories', 'animeCount')">애니 수${getSortIcon('categories', 'animeCount')}</th>
             <th>액션</th>
           </tr>
         </thead>
         <tbody>
-          ${categories.map(c => `
+          ${items.map(c => `
             <tr>
               <td>${c.id}</td>
               <td>${c.icon}</td>
@@ -656,27 +766,38 @@ async function deleteCategory(id) {
 // 유저 관리 탭
 // ============================================
 async function renderUsersTab(container) {
-  const users = await fetchAdminData('users');
+  if (adminData.users.items.length === 0 || !window.adminUsersLoaded) {
+    adminData.users.items = await fetchAdminData('users');
+    window.adminUsersLoaded = true;
+  }
+  
+  const { search, sort, order } = adminData.users;
+  let items = filterItems(adminData.users.items, search, ['username', 'nickname']);
+  items = sortItems(items, sort, order);
   
   container.innerHTML = `
     <div class="admin-section">
       <div class="section-header">
-        <h2>유저 목록 (${users.length}명)</h2>
+        <h2>유저 목록 (${items.length}명)</h2>
+        <div class="header-actions">
+          <input type="text" class="search-input" placeholder="아이디, 닉네임 검색..." 
+                 value="${search}" oninput="handleSearch('users', this.value)">
+        </div>
       </div>
       <table class="admin-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>아이디</th>
-            <th>닉네임</th>
+            <th class="sortable" onclick="handleSort('users', 'id')">ID${getSortIcon('users', 'id')}</th>
+            <th class="sortable" onclick="handleSort('users', 'username')">아이디${getSortIcon('users', 'username')}</th>
+            <th class="sortable" onclick="handleSort('users', 'nickname')">닉네임${getSortIcon('users', 'nickname')}</th>
             <th>관리자</th>
-            <th>리뷰</th>
-            <th>댓글</th>
+            <th class="sortable" onclick="handleSort('users', 'reviewCount')">리뷰${getSortIcon('users', 'reviewCount')}</th>
+            <th class="sortable" onclick="handleSort('users', 'commentCount')">댓글${getSortIcon('users', 'commentCount')}</th>
             <th>액션</th>
           </tr>
         </thead>
         <tbody>
-          ${users.map(u => `
+          ${items.map(u => `
             <tr>
               <td>${u.id}</td>
               <td>${u.username}</td>
@@ -730,28 +851,39 @@ async function deleteUser(id) {
 // 리뷰 관리 탭
 // ============================================
 async function renderReviewsTab(container) {
-  const reviews = await fetchAdminData('reviews');
+  if (adminData.reviews.items.length === 0 || !window.adminReviewsLoaded) {
+    adminData.reviews.items = await fetchAdminData('reviews');
+    window.adminReviewsLoaded = true;
+  }
+  
+  const { search, sort, order } = adminData.reviews;
+  let items = filterItems(adminData.reviews.items, search, ['animeTitle', 'authorName', 'oneLiner', 'tier']);
+  items = sortItems(items, sort, order);
   
   container.innerHTML = `
     <div class="admin-section">
       <div class="section-header">
-        <h2>리뷰 목록 (${reviews.length}개)</h2>
+        <h2>리뷰 목록 (${items.length}개)</h2>
+        <div class="header-actions">
+          <input type="text" class="search-input" placeholder="애니, 작성자, 한줄평 검색..." 
+                 value="${search}" oninput="handleSearch('reviews', this.value)">
+        </div>
       </div>
       <table class="admin-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>애니</th>
-            <th>작성자</th>
-            <th>티어</th>
+            <th class="sortable" onclick="handleSort('reviews', 'id')">ID${getSortIcon('reviews', 'id')}</th>
+            <th class="sortable" onclick="handleSort('reviews', 'animeTitle')">애니${getSortIcon('reviews', 'animeTitle')}</th>
+            <th class="sortable" onclick="handleSort('reviews', 'authorName')">작성자${getSortIcon('reviews', 'authorName')}</th>
+            <th class="sortable" onclick="handleSort('reviews', 'tier')">티어${getSortIcon('reviews', 'tier')}</th>
             <th>한줄평</th>
-            <th>조회</th>
-            <th>댓글</th>
+            <th class="sortable" onclick="handleSort('reviews', 'viewCount')">조회${getSortIcon('reviews', 'viewCount')}</th>
+            <th class="sortable" onclick="handleSort('reviews', 'commentCount')">댓글${getSortIcon('reviews', 'commentCount')}</th>
             <th>액션</th>
           </tr>
         </thead>
         <tbody>
-          ${reviews.map(r => `
+          ${items.map(r => `
             <tr>
               <td>${r.id}</td>
               <td>${r.animeTitle || '-'}</td>
@@ -777,6 +909,8 @@ async function deleteReview(id) {
   
   const result = await adminDelete('reviews', id);
   if (result.message) {
+    window.adminReviewsLoaded = false;
+    adminData.reviews.items = [];
     renderTabContent('reviews');
     renderStats();
   } else {

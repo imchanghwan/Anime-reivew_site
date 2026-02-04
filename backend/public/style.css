@@ -2867,3 +2867,57 @@ a {
   border-radius: var(--radius-md);
   margin: var(--space-md) 0;
 }
+
+/* ========================================
+   Admin Search & Sort
+======================================== */
+.header-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.search-input {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  width: 200px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable:hover {
+  background-color: var(--color-bg);
+}
+
+.admin-table th.sortable::after {
+  content: '';
+  margin-left: 4px;
+}
+
+@media (max-width: 768px) {
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    gap: var(--space-sm);
+    align-items: stretch !important;
+  }
+}
