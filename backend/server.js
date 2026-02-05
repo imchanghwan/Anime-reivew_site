@@ -920,7 +920,7 @@ app.get('/api/user-votes', (req, res) => {
 // PUT /api/reviews/:id - 리뷰 수정
 app.put('/api/reviews/:id', (req, res) => {
   const { id } = req.params;
-  const { userId, oneLiner, content } = req.body;
+  const { userId, tier, oneLiner, content } = req.body;
   
   if (!userId) return res.status(401).json({ error: '로그인 필요' });
   
@@ -930,14 +930,22 @@ app.put('/api/reviews/:id', (req, res) => {
     if (!review) return res.status(404).json({ error: '리뷰를 찾을 수 없습니다' });
     if (review.user_id !== userId) return res.status(403).json({ error: '수정 권한이 없습니다' });
     
-    db.run(
-      `UPDATE reviews SET one_liner = ?, content = ? WHERE id = ?`,
-      [oneLiner || '', content || '', id],
-      function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: '수정 완료' });
-      }
-    );
+    // tier가 있으면 tier도 업데이트, 없으면 기존 방식
+    const query = tier 
+      ? `UPDATE reviews SET tier = ?, rating = ?, one_liner = ?, content = ? WHERE id = ?`
+      : `UPDATE reviews SET one_liner = ?, content = ? WHERE id = ?`;
+    
+    const tierToRating = { 'SSS': 10, 'SS': 9.5, 'S': 9, 'A': 8, 'B': 7, 'C': 6, 'D': 5, 'E': 4 };
+    const rating = tier ? (tierToRating[tier] || 8) : null;
+    
+    const params = tier 
+      ? [tier, rating, oneLiner || '', content || '', id]
+      : [oneLiner || '', content || '', id];
+    
+    db.run(query, params, function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: '수정 완료' });
+    });
   });
 });
 
