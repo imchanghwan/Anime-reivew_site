@@ -590,6 +590,9 @@ function openEditReviewModal() {
   
   closeModal();
   
+  const tiers = ['SSS', 'SS', 'S', 'A', 'B', 'C', 'D', 'E'];
+  const currentTier = currentReview.tier || 'A';
+  
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.id = 'edit-review-modal';
@@ -600,6 +603,17 @@ function openEditReviewModal() {
         <button class="modal-close" onclick="closeModal()">&times;</button>
       </div>
       <form class="modal-form" onsubmit="handleEditReviewSubmit(event)">
+        <div class="form-group">
+          <label>티어</label>
+          <div class="tier-select-grid">
+            ${tiers.map(t => `
+              <label class="tier-radio">
+                <input type="radio" name="edit-tier" value="${t}" ${t === currentTier ? 'checked' : ''}>
+                <span class="tier tier-${t.toLowerCase()}">${t}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
         <div class="form-group">
           <label>한줄평</label>
           <input type="text" id="edit-oneliner" value="${currentReview.oneLiner || ''}" maxlength="100">
@@ -632,11 +646,13 @@ async function handleEditReviewSubmit(e) {
   const user = getUser();
   if (!user) return;
   
+  const tier = document.querySelector('input[name="edit-tier"]:checked')?.value;
   const oneLiner = document.getElementById('edit-oneliner').value;
   const content = document.getElementById('edit-content').value;
   
   const result = await updateReview(currentReviewId, {
     userId: user.id,
+    tier,
     oneLiner,
     content
   });
