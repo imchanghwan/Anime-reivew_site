@@ -41,7 +41,26 @@ function renderTierBadge(tier) {
 // 간단한 마크다운 파서
 function parseMarkdown(text) {
   if (!text) return '';
-  
+
+  // 1) 코드 블록을 먼저 추출하여 플레이스홀더로 치환 (인라인 코드보다 먼저 처리해야 함)
+  const codeBlocks = [];
+  text = text.replace(/```([\s\S]*?)```/g, function(match, code) {
+    const i = codeBlocks.length;
+    const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // 앞뒤 줄바꿈 제거
+    codeBlocks.push('<pre><code>' + escaped.replace(/^\n/, '').replace(/\n$/, '') + '</code></pre>');
+    return '\x00CB' + i + '\x00';
+  });
+
+  // 2) 인라인 코드를 추출하여 플레이스홀더로 치환
+  const inlineCodes = [];
+  text = text.replace(/`([^`]+)`/g, function(match, code) {
+    const i = inlineCodes.length;
+    const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    inlineCodes.push('<code>' + escaped + '</code>');
+    return '\x00IC' + i + '\x00';
+  });
+
   let html = text
     // & 이스케이프
     .replace(/&/g, '&amp;')
@@ -58,10 +77,6 @@ function parseMarkdown(text) {
     .replace(/_(.+?)_/g, '<em>$1</em>')
     // 취소선
     .replace(/~~(.+?)~~/g, '<del>$1</del>')
-    // 인라인 코드
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // 코드 블록
-    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
     // 인용
     .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
     // 순서 없는 리스트
@@ -73,17 +88,67 @@ function parseMarkdown(text) {
     // 이미지 (링크보다 먼저 처리)
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
     // 링크
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-    // 줄바꿈
-    .replace(/\n/g, '<br>');
-  
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+  // 테이블 파싱 (줄바꿈을 <br>로 바꾸기 전에 처리)
+  html = html.replace(/^(\|.+\|)\n(\|[\s\-:| ]+\|)\n((?:\|.+\|\n?)+)/gm, function(match) {
+    const rows = match.trim().split('\n');
+    if (rows.length < 3) return match;
+
+    const parseRow = function(row) {
+      return row.replace(/^\|/, '').replace(/\|$/, '').split('|').map(function(c) { return c.trim(); });
+    };
+
+    const headerCells = parseRow(rows[0]);
+    const alignCells = parseRow(rows[1]);
+    const aligns = alignCells.map(function(cell) {
+      if (cell.startsWith(':') && cell.endsWith(':')) return 'center';
+      if (cell.endsWith(':')) return 'right';
+      return 'left';
+    });
+
+    var table = '<table><thead><tr>';
+    headerCells.forEach(function(cell, i) {
+      var align = aligns[i] ? ' style="text-align:' + aligns[i] + '"' : '';
+      table += '<th' + align + '>' + cell + '</th>';
+    });
+    table += '</tr></thead><tbody>';
+
+    for (var r = 2; r < rows.length; r++) {
+      if (!rows[r].trim()) continue;
+      var cells = parseRow(rows[r]);
+      table += '<tr>';
+      cells.forEach(function(cell, j) {
+        var align = aligns[j] ? ' style="text-align:' + aligns[j] + '"' : '';
+        table += '<td' + align + '>' + cell + '</td>';
+      });
+      table += '</tr>';
+    }
+
+    table += '</tbody></table>';
+    return table;
+  });
+
+  // 줄바꿈
+  html = html.replace(/\n/g, '<br>');
+
   // 연속된 <li>를 <ul>로 감싸기
   html = html.replace(/(<li>.*?<\/li>)(<br>)?(<li>)/g, '$1$3');
   html = html.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
-  
+
   // 연속된 blockquote 병합
   html = html.replace(/<\/blockquote><br><blockquote>/g, '<br>');
-  
+
+  // 3) 인라인 코드 복원
+  inlineCodes.forEach(function(code, i) {
+    html = html.split('\x00IC' + i + '\x00').join(code);
+  });
+
+  // 4) 코드 블록 복원
+  codeBlocks.forEach(function(code, i) {
+    html = html.split('\x00CB' + i + '\x00').join(code);
+  });
+
   return html;
 }
 

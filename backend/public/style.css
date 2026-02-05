@@ -3035,6 +3035,27 @@ a {
   margin: var(--space-md) 0;
 }
 
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-md) 0;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--color-border);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.markdown-body th {
+  background: var(--color-bg);
+  font-weight: 600;
+}
+
+.markdown-body tbody tr:hover {
+  background: var(--color-bg);
+}
+
 /* ========================================
    Admin Search & Sort
 ======================================== */
