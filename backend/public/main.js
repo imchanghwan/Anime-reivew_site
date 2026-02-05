@@ -280,6 +280,7 @@ async function handleRegister(e) {
 function createFeaturedCard(anime) {
   const tierClass = anime.tier ? `tier-${anime.tier.toLowerCase()}` : '';
   const reviewerText = anime.reviewer ? ` - ${anime.reviewer}` : '';
+  const quoteText = anime.oneLiner ? `"${anime.oneLiner}"${reviewerText}` : '';
   
   const card = document.createElement('article');
   card.className = 'featured-card';
@@ -297,7 +298,7 @@ function createFeaturedCard(anime) {
           <span class="rating-value">${anime.rating}</span>
         </div>
       </div>
-      <p class="featured-quote">"${anime.oneLiner || ''}"${reviewerText}</p>
+      ${quoteText ? `<p class="featured-quote">${quoteText}</p>` : ''}
     </div>
   `;
   
@@ -330,7 +331,7 @@ function createListCard(anime) {
           <span>${anime.rating}</span>
         </div>
       </div>
-      <p class="list-quote">"${anime.oneLiner || ''}"</p>
+      ${anime.oneLiner ? `<p class="list-quote">"${anime.oneLiner}"</p>` : ''}
     </div>
   `;
   
