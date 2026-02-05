@@ -652,9 +652,15 @@ async function handleCommentSubmit(e) {
 // ============================================
 function openEditReviewModal() {
   if (!currentReview) return;
-  
+
   closeModal();
-  
+
+  const tiers = ['SSS', 'SS', 'S', 'A', 'B', 'C', 'D', 'E'];
+  const tierRadios = tiers.map(t => {
+    const checked = currentReview.tier === t ? 'checked' : '';
+    return `<label class="tier-radio"><input type="radio" name="edit-tier" value="${t}" ${checked}><span class="tier tier-${t.toLowerCase()}">${t}</span></label>`;
+  }).join('');
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.id = 'edit-review-modal';
@@ -665,6 +671,10 @@ function openEditReviewModal() {
         <button class="modal-close" onclick="closeModal()">&times;</button>
       </div>
       <form class="modal-form" onsubmit="handleEditReviewSubmit(event)">
+        <div class="form-group">
+          <label>티어</label>
+          <div class="tier-select-grid">${tierRadios}</div>
+        </div>
         <div class="form-group">
           <label>한줄평</label>
           <input type="text" id="edit-oneliner" value="${currentReview.oneLiner || ''}" maxlength="100">
@@ -691,17 +701,33 @@ function closeModal() {
   if (modal) modal.remove();
 }
 
+function getTierDefaultRating(tier) {
+  const ratings = {
+    'SSS': 9.5, 'SS': 9.0, 'S': 8.5, 'A': 8.0,
+    'B': 7.0, 'C': 6.0, 'D': 5.0, 'E': 4.0
+  };
+  return ratings[tier] || 7.0;
+}
+
 async function handleEditReviewSubmit(e) {
   e.preventDefault();
-  
+
   const user = getUser();
   if (!user) return;
-  
+
+  const tier = document.querySelector('input[name="edit-tier"]:checked')?.value;
+  if (!tier) {
+    alert('티어를 선택해주세요.');
+    return;
+  }
+
   const oneLiner = document.getElementById('edit-oneliner').value;
   const content = document.getElementById('edit-content').value;
-  
+
   const result = await updateReview(currentReviewId, {
     userId: user.id,
+    tier,
+    rating: getTierDefaultRating(tier),
     oneLiner,
     content
   });

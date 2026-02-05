@@ -383,10 +383,10 @@ app.get('/api/featured', (req, res) => {
 app.get('/api/recent-activity', (req, res) => {
   db.all(
     `SELECT a.id, a.title, a.cover_image as coverImage,
-            COALESCE(
-              MAX(r.created_at),
-              MAX(c.created_at),
-              MAX(rv.created_at)
+            MAX(
+              IFNULL(r.created_at, ''),
+              IFNULL(c.created_at, ''),
+              IFNULL(rv.created_at, '')
             ) as lastActivity,
             AVG(r2.rating) as avgRating
      FROM anime a
@@ -395,7 +395,7 @@ app.get('/api/recent-activity', (req, res) => {
      LEFT JOIN comments c ON r.id = c.review_id
      LEFT JOIN review_votes rv ON r.id = rv.review_id
      GROUP BY a.id
-     HAVING lastActivity IS NOT NULL
+     HAVING lastActivity != ''
      ORDER BY lastActivity DESC
      LIMIT 10`,
     [],
@@ -920,19 +920,19 @@ app.get('/api/user-votes', (req, res) => {
 // PUT /api/reviews/:id - 리뷰 수정
 app.put('/api/reviews/:id', (req, res) => {
   const { id } = req.params;
-  const { userId, oneLiner, content } = req.body;
-  
+  const { userId, tier, rating, oneLiner, content } = req.body;
+
   if (!userId) return res.status(401).json({ error: '로그인 필요' });
-  
+
   // 리뷰 소유자 확인
   db.get(`SELECT user_id FROM reviews WHERE id = ?`, [id], (err, review) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!review) return res.status(404).json({ error: '리뷰를 찾을 수 없습니다' });
     if (review.user_id !== userId) return res.status(403).json({ error: '수정 권한이 없습니다' });
-    
+
     db.run(
-      `UPDATE reviews SET one_liner = ?, content = ? WHERE id = ?`,
-      [oneLiner || '', content || '', id],
+      `UPDATE reviews SET tier = ?, rating = ?, one_liner = ?, content = ? WHERE id = ?`,
+      [tier, rating, oneLiner || '', content || '', id],
       function(err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: '수정 완료' });
