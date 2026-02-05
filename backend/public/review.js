@@ -42,49 +42,161 @@ function renderTierBadge(tier) {
 function parseMarkdown(text) {
   if (!text) return '';
   
+  // HTML 이스케이프
   let html = text
-    // & 이스케이프
     .replace(/&/g, '&amp;')
-    // 헤더 (### > ## > #)
-    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
-    // 굵게 & 기울임
-    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/___(.+?)___/g, '<strong><em>$1</em></strong>')
-    .replace(/__(.+?)__/g, '<strong>$1</strong>')
-    .replace(/_(.+?)_/g, '<em>$1</em>')
-    // 취소선
-    .replace(/~~(.+?)~~/g, '<del>$1</del>')
-    // 인라인 코드
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // 코드 블록
-    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-    // 인용
-    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-    // 순서 없는 리스트
-    .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
-    // 순서 있는 리스트
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    // 가로선
-    .replace(/^---$/gm, '<hr>')
-    // 이미지 (링크보다 먼저 처리)
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
-    // 링크
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-    // 줄바꿈
-    .replace(/\n/g, '<br>');
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
   
-  // 연속된 <li>를 <ul>로 감싸기
-  html = html.replace(/(<li>.*?<\/li>)(<br>)?(<li>)/g, '$1$3');
-  html = html.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
+  // 코드 블록 (먼저 처리하여 내부 문법 보호)
+  const codeBlocks = [];
+  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push(`<pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`);
+    return `%%CODEBLOCK${idx}%%`;
+  });
+  
+  // 인라인 코드 (코드 블록 다음에 처리)
+  const inlineCodes = [];
+  html = html.replace(/`([^`\n]+)`/g, (match, code) => {
+    const idx = inlineCodes.length;
+    inlineCodes.push(`<code class="inline-code">${code}</code>`);
+    return `%%INLINECODE${idx}%%`;
+  });
+  
+  // 테이블
+  html = html.replace(/^\|(.+)\|\s*\n\|[\s\-\|:]+\|\s*\n((?:\|.+\|\s*\n?)+)/gm, (match, header, body) => {
+    const headers = header.split('|').map(h => h.trim()).filter(h => h);
+    const rows = body.trim().split('\n').map(row => 
+      row.split('|').map(cell => cell.trim()).filter(cell => cell)
+    );
+    
+    let table = '<table class="md-table"><thead><tr>';
+    headers.forEach(h => table += `<th>${h}</th>`);
+    table += '</tr></thead><tbody>';
+    rows.forEach(row => {
+      table += '<tr>';
+      row.forEach(cell => table += `<td>${cell}</td>`);
+      table += '</tr>';
+    });
+    table += '</tbody></table>';
+    return table;
+  });
+  
+  // 헤더 (h6 -> h1 순서로 처리)
+  html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
+  html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
+  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  
+  // 가로선
+  html = html.replace(/^(?:---|\*\*\*|___)$/gm, '<hr>');
+  
+  // 중첩 인용문 (>> 먼저 처리)
+  html = html.replace(/^&gt;&gt; (.+)$/gm, '<blockquote class="nested"><blockquote>$1</blockquote></blockquote>');
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
   
   // 연속된 blockquote 병합
-  html = html.replace(/<\/blockquote><br><blockquote>/g, '<br>');
+  html = html.replace(/<\/blockquote>\n<blockquote>/g, '\n');
+  html = html.replace(/<\/blockquote><\/blockquote>\n<blockquote class="nested"><blockquote>/g, '\n');
   
-  return html;
+  // 이미지 (링크보다 먼저)
+  html = html.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, '<img src="$2" alt="$1" title="$3">');
+  
+  // 링크
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  
+  // 굵게 & 기울임 (순서 중요)
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+  
+  // 취소선
+  html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+  
+  // 리스트 처리
+  const lines = html.split('\n');
+  let result = [];
+  let listStack = []; // { type: 'ul'|'ol', indent: number }
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    
+    // 들여쓰기와 리스트 아이템 확인
+    const ulMatch = line.match(/^(\s*)[*\-] (.+)$/);
+    const olMatch = line.match(/^(\s*)\d+\. (.+)$/);
+    
+    if (ulMatch || olMatch) {
+      const indent = (ulMatch || olMatch)[1].length;
+      const content = (ulMatch || olMatch)[2];
+      const type = ulMatch ? 'ul' : 'ol';
+      
+      // 들여쓰기 레벨 계산 (4칸 = 1레벨)
+      const level = Math.floor(indent / 4);
+      
+      // 스택 조정
+      while (listStack.length > level + 1) {
+        const closed = listStack.pop();
+        result.push(`</${closed.type}>`);
+      }
+      
+      if (listStack.length === level) {
+        // 새 리스트 시작
+        listStack.push({ type, indent });
+        result.push(`<${type}>`);
+      } else if (listStack.length > 0 && listStack[listStack.length - 1].type !== type) {
+        // 타입 변경
+        const closed = listStack.pop();
+        result.push(`</${closed.type}>`);
+        listStack.push({ type, indent });
+        result.push(`<${type}>`);
+      }
+      
+      result.push(`<li>${content}</li>`);
+    } else {
+      // 리스트가 아닌 줄
+      while (listStack.length > 0) {
+        const closed = listStack.pop();
+        result.push(`</${closed.type}>`);
+      }
+      result.push(line);
+    }
+  }
+  
+  // 남은 리스트 태그 닫기
+  while (listStack.length > 0) {
+    const closed = listStack.pop();
+    result.push(`</${closed.type}>`);
+  }
+  
+  html = result.join('\n');
+  
+  // 빈 줄을 단락 구분으로 처리
+  html = html.replace(/\n\n+/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+  
+  // 코드 블록 복원
+  codeBlocks.forEach((block, idx) => {
+    html = html.replace(`%%CODEBLOCK${idx}%%`, block);
+  });
+  
+  // 인라인 코드 복원
+  inlineCodes.forEach((code, idx) => {
+    html = html.replace(`%%INLINECODE${idx}%%`, code);
+  });
+  
+  // 불필요한 br 정리
+  html = html.replace(/<br><\/p>/g, '</p>');
+  html = html.replace(/<p><br>/g, '<p>');
+  html = html.replace(/<br>(<\/?(?:ul|ol|li|h[1-6]|blockquote|pre|table|hr))/g, '$1');
+  html = html.replace(/(<\/?(?:ul|ol|li|h[1-6]|blockquote|pre|table|hr)>)<br>/g, '$1');
+  
+  return `<p>${html}</p>`.replace(/<p><\/p>/g, '');
 }
 
 // ============================================
