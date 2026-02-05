@@ -3463,48 +3463,67 @@ a {
 /* ========================================
    Markdown Styles
 ======================================== */
-.review-body h1,
-.review-body h2,
-.review-body h3,
-.review-body h4,
-.review-body h5,
-.review-body h6 {
+/* 헤더 */
+.review-body .md-h1,
+.review-body .md-h2,
+.review-body .md-h3,
+.review-body .md-h4,
+.review-body .md-h5,
+.review-body .md-h6 {
   margin: 1.5em 0 0.5em;
   line-height: 1.3;
   font-weight: 600;
 }
 
-.review-body h1 {
+.review-body .md-h1 {
   font-size: 1.75rem;
   padding-bottom: 0.3em;
   border-bottom: 2px solid var(--color-border);
 }
 
-.review-body h2 {
+.review-body .md-h2 {
   font-size: 1.5rem;
   padding-bottom: 0.3em;
   border-bottom: 1px solid var(--color-border);
 }
 
-.review-body h3 { font-size: 1.25rem; }
-.review-body h4 { font-size: 1.125rem; }
-.review-body h5 { font-size: 1rem; }
-.review-body h6 { font-size: 0.875rem; color: var(--color-text-secondary); }
+.review-body .md-h3 { font-size: 1.25rem; }
+.review-body .md-h4 { font-size: 1.125rem; }
+.review-body .md-h5 { font-size: 1rem; }
+.review-body .md-h6 { font-size: 0.875rem; color: var(--color-text-secondary); }
 
-.review-body ul,
-.review-body ol {
+/* Unordered List - disc > circle > square */
+.review-body .md-ul {
   margin: 0.5em 0;
   padding-left: 1.5em;
+  list-style-type: disc;
 }
 
-.review-body ul { list-style-type: disc; }
-.review-body ol { list-style-type: decimal; }
-
-.review-body ul ul,
-.review-body ol ol,
-.review-body ul ol,
-.review-body ol ul {
+.review-body .md-ul-nested {
   margin: 0.25em 0;
+  padding-left: 1.5em;
+  list-style-type: circle;
+}
+
+.review-body .md-ul-nested .md-ul-nested {
+  list-style-type: square;
+}
+
+/* Ordered List - decimal > lower-alpha > lower-roman */
+.review-body .md-ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+  list-style-type: decimal;
+}
+
+.review-body .md-ol-nested {
+  margin: 0.25em 0;
+  padding-left: 1.5em;
+  list-style-type: lower-alpha;
+}
+
+.review-body .md-ol-nested .md-ol-nested {
+  list-style-type: lower-roman;
 }
 
 .review-body li {
@@ -3512,50 +3531,58 @@ a {
   line-height: 1.6;
 }
 
-.review-body blockquote {
-  margin: 1em 0;
+/* Blockquote - 중첩 지원 */
+.review-body .md-blockquote {
+  margin: 0.5em 0;
   padding: 0.5em 1em;
   border-left: 4px solid var(--color-accent);
   background: var(--color-bg);
-  color: var(--color-text-secondary);
 }
 
-.review-body blockquote blockquote {
-  margin: 0.5em 0;
-  border-left-color: var(--color-border);
+.review-body .md-blockquote .md-blockquote {
+  border-left-color: #9ca3af;
+  background: rgba(0, 0, 0, 0.03);
 }
 
-.review-body pre {
+.review-body .md-blockquote .md-blockquote .md-blockquote {
+  border-left-color: #d1d5db;
+}
+
+/* Code Block - 라이트 테마 */
+.review-body .md-pre {
   margin: 1em 0;
   padding: 1em;
-  background: #1e1e1e;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow-x: auto;
 }
 
-.review-body pre code {
-  color: #d4d4d4;
+.review-body .md-pre code {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 0.875rem;
   line-height: 1.5;
+  color: var(--color-text-primary);
   background: none;
   padding: 0;
 }
 
-.review-body .inline-code {
+/* Inline Code - 배경만, 글자색 유지 */
+.review-body .md-inline-code {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   padding: 0.15em 0.4em;
   border-radius: 4px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 0.875em;
-  color: #e83e8c;
 }
 
+/* Table - 선 보이게 */
 .review-body .md-table {
   width: 100%;
   margin: 1em 0;
   border-collapse: collapse;
+  border: 1px solid var(--color-border);
 }
 
 .review-body .md-table th,
@@ -3570,32 +3597,36 @@ a {
   font-weight: 600;
 }
 
-.review-body .md-table tr:nth-child(even) {
+.review-body .md-table tbody tr:nth-child(even) {
   background: var(--color-bg);
 }
 
-.review-body hr {
+/* HR */
+.review-body .md-hr {
   margin: 1.5em 0;
   border: none;
   border-top: 1px solid var(--color-border);
 }
 
-.review-body img {
+/* Image */
+.review-body .md-img {
   max-width: 100%;
   height: auto;
   border-radius: var(--radius-md);
   margin: 1em 0;
 }
 
-.review-body a {
+/* Link */
+.review-body .md-link {
   color: var(--color-accent);
   text-decoration: underline;
 }
 
-.review-body a:hover {
+.review-body .md-link:hover {
   color: #d97706;
 }
 
+/* Paragraph */
 .review-body p {
   margin: 0.75em 0;
   line-height: 1.8;

@@ -52,15 +52,15 @@ function parseMarkdown(text) {
   const codeBlocks = [];
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
     const idx = codeBlocks.length;
-    codeBlocks.push(`<pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`);
-    return `%%CODEBLOCK${idx}%%`;
+    codeBlocks.push(`<pre class="md-pre"><code>${code.trim()}</code></pre>`);
+    return `\n%%CODEBLOCK${idx}%%\n`;
   });
   
-  // 인라인 코드 (코드 블록 다음에 처리)
+  // 인라인 코드
   const inlineCodes = [];
   html = html.replace(/`([^`\n]+)`/g, (match, code) => {
     const idx = inlineCodes.length;
-    inlineCodes.push(`<code class="inline-code">${code}</code>`);
+    inlineCodes.push(`<code class="md-inline-code">${code}</code>`);
     return `%%INLINECODE${idx}%%`;
   });
   
@@ -84,99 +84,81 @@ function parseMarkdown(text) {
   });
   
   // 헤더 (h6 -> h1 순서로 처리)
-  html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
-  html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
-  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  html = html.replace(/^###### (.+)$/gm, '<h6 class="md-h6">$1</h6>');
+  html = html.replace(/^##### (.+)$/gm, '<h5 class="md-h5">$1</h5>');
+  html = html.replace(/^#### (.+)$/gm, '<h4 class="md-h4">$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3 class="md-h3">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="md-h2">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 class="md-h1">$1</h1>');
   
   // 가로선
-  html = html.replace(/^(?:---|\*\*\*|___)$/gm, '<hr>');
-  
-  // 중첩 인용문 (>> 먼저 처리)
-  html = html.replace(/^&gt;&gt; (.+)$/gm, '<blockquote class="nested"><blockquote>$1</blockquote></blockquote>');
-  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
-  
-  // 연속된 blockquote 병합
-  html = html.replace(/<\/blockquote>\n<blockquote>/g, '\n');
-  html = html.replace(/<\/blockquote><\/blockquote>\n<blockquote class="nested"><blockquote>/g, '\n');
+  html = html.replace(/^(?:---|\*\*\*|___)$/gm, '<hr class="md-hr">');
   
   // 이미지 (링크보다 먼저)
-  html = html.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, '<img src="$2" alt="$1" title="$3">');
+  html = html.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, '<img src="$2" alt="$1" title="$3" class="md-img">');
   
   // 링크
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="md-link">$1</a>');
   
   // 굵게 & 기울임 (순서 중요)
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
   html = html.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+  html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  html = html.replace(/_([^_\n]+)_/g, '<em>$1</em>');
   
   // 취소선
   html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
   
-  // 리스트 처리
+  // 블록 처리를 위해 라인별로 분리
   const lines = html.split('\n');
   let result = [];
-  let listStack = []; // { type: 'ul'|'ol', indent: number }
+  let i = 0;
   
-  for (let i = 0; i < lines.length; i++) {
+  while (i < lines.length) {
     let line = lines[i];
     
-    // 들여쓰기와 리스트 아이템 확인
-    const ulMatch = line.match(/^(\s*)[*\-] (.+)$/);
-    const olMatch = line.match(/^(\s*)\d+\. (.+)$/);
-    
-    if (ulMatch || olMatch) {
-      const indent = (ulMatch || olMatch)[1].length;
-      const content = (ulMatch || olMatch)[2];
-      const type = ulMatch ? 'ul' : 'ol';
-      
-      // 들여쓰기 레벨 계산 (4칸 = 1레벨)
-      const level = Math.floor(indent / 4);
-      
-      // 스택 조정
-      while (listStack.length > level + 1) {
-        const closed = listStack.pop();
-        result.push(`</${closed.type}>`);
+    // Blockquote 처리
+    if (line.match(/^&gt;/)) {
+      let blockquoteLines = [];
+      while (i < lines.length && lines[i].match(/^&gt;/)) {
+        blockquoteLines.push(lines[i]);
+        i++;
       }
-      
-      if (listStack.length === level) {
-        // 새 리스트 시작
-        listStack.push({ type, indent });
-        result.push(`<${type}>`);
-      } else if (listStack.length > 0 && listStack[listStack.length - 1].type !== type) {
-        // 타입 변경
-        const closed = listStack.pop();
-        result.push(`</${closed.type}>`);
-        listStack.push({ type, indent });
-        result.push(`<${type}>`);
-      }
-      
-      result.push(`<li>${content}</li>`);
-    } else {
-      // 리스트가 아닌 줄
-      while (listStack.length > 0) {
-        const closed = listStack.pop();
-        result.push(`</${closed.type}>`);
-      }
-      result.push(line);
+      result.push(parseBlockquote(blockquoteLines));
+      continue;
     }
-  }
-  
-  // 남은 리스트 태그 닫기
-  while (listStack.length > 0) {
-    const closed = listStack.pop();
-    result.push(`</${closed.type}>`);
+    
+    // 리스트 처리 (ul)
+    if (line.match(/^(\s*)[*\-] /)) {
+      let listLines = [];
+      while (i < lines.length && (lines[i].match(/^(\s*)[*\-] /) || lines[i].match(/^(\s+)\S/))) {
+        listLines.push(lines[i]);
+        i++;
+      }
+      result.push(parseList(listLines, 'ul'));
+      continue;
+    }
+    
+    // 리스트 처리 (ol)
+    if (line.match(/^(\s*)\d+\. /)) {
+      let listLines = [];
+      while (i < lines.length && (lines[i].match(/^(\s*)\d+\. /) || lines[i].match(/^(\s+)\S/))) {
+        listLines.push(lines[i]);
+        i++;
+      }
+      result.push(parseList(listLines, 'ol'));
+      continue;
+    }
+    
+    result.push(line);
+    i++;
   }
   
   html = result.join('\n');
   
-  // 빈 줄을 단락 구분으로 처리
+  // 빈 줄 처리
   html = html.replace(/\n\n+/g, '</p><p>');
   html = html.replace(/\n/g, '<br>');
   
@@ -190,13 +172,104 @@ function parseMarkdown(text) {
     html = html.replace(`%%INLINECODE${idx}%%`, code);
   });
   
-  // 불필요한 br 정리
+  // 불필요한 태그 정리
   html = html.replace(/<br><\/p>/g, '</p>');
   html = html.replace(/<p><br>/g, '<p>');
-  html = html.replace(/<br>(<\/?(?:ul|ol|li|h[1-6]|blockquote|pre|table|hr))/g, '$1');
-  html = html.replace(/(<\/?(?:ul|ol|li|h[1-6]|blockquote|pre|table|hr)>)<br>/g, '$1');
+  html = html.replace(/<br>(<(?:ul|ol|li|h[1-6]|blockquote|pre|table|hr)[^>]*>)/g, '$1');
+  html = html.replace(/(<\/(?:ul|ol|li|h[1-6]|blockquote|pre|table|hr)>)<br>/g, '$1');
+  html = html.replace(/<p>(<(?:ul|ol|h[1-6]|blockquote|pre|table|hr)[^>]*>)/g, '$1');
+  html = html.replace(/(<\/(?:ul|ol|h[1-6]|blockquote|pre|table|hr)>)<\/p>/g, '$1');
   
-  return `<p>${html}</p>`.replace(/<p><\/p>/g, '');
+  return `<p>${html}</p>`.replace(/<p><\/p>/g, '').replace(/<p>(<(?:ul|ol|h[1-6]|blockquote|pre|table|hr))/g, '$1');
+}
+
+// Blockquote 파싱 (중첩 지원)
+function parseBlockquote(lines) {
+  let result = [];
+  let currentLevel = 0;
+  
+  for (const line of lines) {
+    // &gt; 개수로 레벨 계산
+    const match = line.match(/^((?:&gt;\s*)+)(.*)$/);
+    if (!match) continue;
+    
+    const level = (match[1].match(/&gt;/g) || []).length;
+    const content = match[2].trim();
+    
+    while (currentLevel < level) {
+      result.push('<blockquote class="md-blockquote">');
+      currentLevel++;
+    }
+    while (currentLevel > level) {
+      result.push('</blockquote>');
+      currentLevel--;
+    }
+    
+    if (content) {
+      result.push(content);
+    }
+  }
+  
+  while (currentLevel > 0) {
+    result.push('</blockquote>');
+    currentLevel--;
+  }
+  
+  return result.join('\n');
+}
+
+// 리스트 파싱 (중첩 지원)
+function parseList(lines, defaultType) {
+  let result = [];
+  let stack = []; // { type, indent }
+  
+  for (const line of lines) {
+    const ulMatch = line.match(/^(\s*)([*\-]) (.+)$/);
+    const olMatch = line.match(/^(\s*)(\d+)\. (.+)$/);
+    
+    if (!ulMatch && !olMatch) continue;
+    
+    const indent = (ulMatch || olMatch)[1].length;
+    const content = ulMatch ? ulMatch[3] : olMatch[3];
+    const type = ulMatch ? 'ul' : 'ol';
+    const level = Math.floor(indent / 4);
+    
+    // 스택 레벨 조정
+    while (stack.length > level + 1) {
+      const closed = stack.pop();
+      result.push(`</li></${closed.type}>`);
+    }
+    
+    if (stack.length <= level) {
+      // 새 리스트 또는 중첩 시작
+      if (stack.length > 0) {
+        // 중첩 리스트는 이전 li 안에
+      }
+      const cls = level === 0 ? `md-${type}` : `md-${type}-nested`;
+      result.push(`<${type} class="${cls}">`);
+      stack.push({ type, indent: level });
+    } else if (stack[stack.length - 1].type !== type) {
+      // 타입 변경
+      const closed = stack.pop();
+      result.push(`</li></${closed.type}>`);
+      const cls = level === 0 ? `md-${type}` : `md-${type}-nested`;
+      result.push(`<${type} class="${cls}">`);
+      stack.push({ type, indent: level });
+    } else {
+      // 같은 레벨, 같은 타입
+      result.push('</li>');
+    }
+    
+    result.push(`<li>${content}`);
+  }
+  
+  // 스택 정리
+  while (stack.length > 0) {
+    const closed = stack.pop();
+    result.push(`</li></${closed.type}>`);
+  }
+  
+  return result.join('');
 }
 
 // ============================================
