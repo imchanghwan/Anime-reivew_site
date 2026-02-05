@@ -355,7 +355,7 @@ app.get('/api/featured', (req, res) => {
             reviews.forEach(r => {
               tierCounts[r.tier] = (tierCounts[r.tier] || 0) + 1;
             });
-            const topTier = Object.entries(tierCounts).sort((x, y) => y[1] - x[1])[0]?.[0] || 'A';
+            const topTier = Object.entries(tierCounts).sort((x, y) => y[1] - x[1])[0]?.[0] || null;
             
             // 익명 처리
             const reviewerName = randomReview ? 
@@ -553,7 +553,7 @@ app.get('/api/categories', (req, res) => {
                 reviews.forEach(r => {
                   tierCounts[r.tier] = (tierCounts[r.tier] || 0) + 1;
                 });
-                const topTier = Object.entries(tierCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'A';
+                const topTier = Object.entries(tierCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
                 
                 // 익명 처리
                 const reviewerName = randomReview ? 

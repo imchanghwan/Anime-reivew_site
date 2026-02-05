@@ -278,7 +278,7 @@ async function handleRegister(e) {
 // DOM - Featured Card
 // ============================================
 function createFeaturedCard(anime) {
-  const tierClass = `tier-${anime.tier.toLowerCase()}`;
+  const tierClass = anime.tier ? `tier-${anime.tier.toLowerCase()}` : '';
   const reviewerText = anime.reviewer ? ` - ${anime.reviewer}` : '';
   
   const card = document.createElement('article');
@@ -290,7 +290,7 @@ function createFeaturedCard(anime) {
     </div>
     <div class="featured-content">
       <div class="featured-header">
-        <span class="tier ${tierClass}">${anime.tier}</span>
+        ${anime.tier ? `<span class="tier ${tierClass}">${anime.tier}</span>` : ''}
         <h3 class="featured-title">${anime.title}</h3>
         <div class="featured-rating">
           <span class="star">★</span>
@@ -312,7 +312,7 @@ function createFeaturedCard(anime) {
 // DOM - List Card
 // ============================================
 function createListCard(anime) {
-  const tierClass = `tier-${anime.tier.toLowerCase()}`;
+  const tierClass = anime.tier ? `tier-${anime.tier.toLowerCase()}` : '';
   
   const card = document.createElement('article');
   card.className = 'list-card';
@@ -320,7 +320,7 @@ function createListCard(anime) {
   card.innerHTML = `
     <div class="list-poster">
       <img src="${anime.coverImage || ''}" alt="${anime.title}">
-      <span class="list-tier ${tierClass}">${anime.tier}</span>
+      ${anime.tier ? `<span class="list-tier ${tierClass}">${anime.tier}</span>` : ''}
     </div>
     <div class="list-info">
       <div class="list-header">
@@ -504,8 +504,8 @@ function handleAnimeSearch(query) {
         <a href="/anime.html?id=${a.id}" class="search-result-item">
           <img src="${a.coverImage || ''}" alt="" class="search-result-img">
           <div class="search-result-info">
-            <span class="search-result-title">${a.title}</span>
             ${a.tier ? `<span class="tier tier-${a.tier.toLowerCase()} tier-small">${a.tier}</span>` : ''}
+            <span class="search-result-title">${a.title}</span>
           </div>
         </a>
       `).join('');
