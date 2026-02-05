@@ -321,7 +321,7 @@ app.get('/api/featured', (req, res) => {
     LEFT JOIN reviews r ON a.id = r.anime_id
     GROUP BY a.id
     HAVING reviewCount > 0
-    ORDER BY avgRating DESC
+    ORDER BY avgRating DESC, reviewCount DESC
     LIMIT 3`,
     [],
     (err, rows) => {
@@ -383,17 +383,20 @@ app.get('/api/featured', (req, res) => {
 app.get('/api/recent-activity', (req, res) => {
   db.all(
     `SELECT a.id, a.title, a.cover_image as coverImage,
-            COALESCE(
-              MAX(r.created_at),
-              MAX(c.created_at),
-              MAX(rv.created_at)
+            (
+              SELECT MAX(activity_time) FROM (
+                SELECT MAX(r.created_at) as activity_time FROM reviews r WHERE r.anime_id = a.id
+                UNION ALL
+                SELECT MAX(c.created_at) as activity_time FROM comments c 
+                  JOIN reviews r ON c.review_id = r.id WHERE r.anime_id = a.id
+                UNION ALL
+                SELECT MAX(rv.created_at) as activity_time FROM review_votes rv 
+                  JOIN reviews r ON rv.review_id = r.id WHERE r.anime_id = a.id
+              )
             ) as lastActivity,
             AVG(r2.rating) as avgRating
      FROM anime a
-     LEFT JOIN reviews r ON a.id = r.anime_id
      LEFT JOIN reviews r2 ON a.id = r2.anime_id
-     LEFT JOIN comments c ON r.id = c.review_id
-     LEFT JOIN review_votes rv ON r.id = rv.review_id
      GROUP BY a.id
      HAVING lastActivity IS NOT NULL
      ORDER BY lastActivity DESC
@@ -421,7 +424,7 @@ app.get('/api/recent-activity', (req, res) => {
           
           const result = rows.map(a => {
             const tiers = tierMap[a.id] || {};
-            const topTier = Object.entries(tiers).sort((x, y) => y[1] - x[1])[0]?.[0] || 'A';
+            const topTier = Object.entries(tiers).sort((x, y) => y[1] - x[1])[0]?.[0] || null;
             return {
               id: a.id,
               title: a.title,
