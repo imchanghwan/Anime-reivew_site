@@ -2081,6 +2081,13 @@ a {
   flex-shrink: 0;
 }
 
+.content-badge {
+  font-size: 0.7rem;
+  color: var(--color-accent);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .top-review-card.rank-1 .tier-card {
   font-size: 0.875rem;
   padding: 2px var(--space-sm);
