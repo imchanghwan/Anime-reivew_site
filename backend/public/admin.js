@@ -13,6 +13,20 @@ let adminData = {
   reviews: { items: [], search: '', sort: 'id', order: 'desc' }
 };
 
+// 모든 탭 캐시 무효화 (데이터 수정 후 호출)
+function invalidateAllCaches() {
+  window.adminAnimesLoaded = false;
+  window.adminSeriesLoaded = false;
+  window.adminCategoriesLoaded = false;
+  window.adminUsersLoaded = false;
+  window.adminReviewsLoaded = false;
+  adminData.anime.items = [];
+  adminData.series.items = [];
+  adminData.categories.items = [];
+  adminData.users.items = [];
+  adminData.reviews.items = [];
+}
+
 // ============================================
 // 인증
 // ============================================
@@ -516,10 +530,9 @@ async function handleAddAnime(e) {
   
   if (result.id) {
     closeModal();
-    window.adminAnimesLoaded = false;
-    adminData.anime.items = [];
-    renderTabContent('anime');
-    renderStats();
+    invalidateAllCaches();
+    await renderTabContent('anime');
+    await renderStats();
   } else {
     alert(result.error || '추가 실패');
   }
@@ -578,9 +591,8 @@ async function handleEditAnime(e, id) {
   
   if (result.message) {
     closeModal();
-    window.adminAnimesLoaded = false;
-    adminData.anime.items = [];
-    renderTabContent('anime');
+    invalidateAllCaches();
+    await renderTabContent('anime');
   } else {
     alert(result.error || '수정 실패');
   }
@@ -588,13 +600,12 @@ async function handleEditAnime(e, id) {
 
 async function deleteAnime(id) {
   if (!confirm('정말 삭제하시겠습니까? 관련 리뷰도 모두 삭제됩니다.')) return;
-  
+
   const result = await adminDelete('anime', id);
   if (result.message) {
-    window.adminAnimesLoaded = false;
-    adminData.anime.items = [];
-    renderTabContent('anime');
-    renderStats();
+    invalidateAllCaches();
+    await renderTabContent('anime');
+    await renderStats();
   } else {
     alert(result.error || '삭제 실패');
   }
@@ -717,9 +728,8 @@ async function handleAddSeries(e) {
       await adminPut('series', result.id, { title, animeIds });
     }
     closeModal();
-    window.adminSeriesLoaded = false;
-    adminData.series.items = [];
-    renderTabContent('series');
+    invalidateAllCaches();
+    await renderTabContent('series');
   } else {
     alert(result.error || '추가 실패');
   }
@@ -763,17 +773,16 @@ function openEditSeriesModal(id) {
 
 async function handleEditSeries(e, id) {
   e.preventDefault();
-  
+
   const title = document.getElementById('modal-title').value;
   const animeIds = Array.from(document.querySelectorAll('input[name="animes"]:checked')).map(cb => parseInt(cb.value));
-  
+
   const result = await adminPut('series', id, { title, animeIds });
-  
+
   if (result.message) {
     closeModal();
-    window.adminSeriesLoaded = false;
-    adminData.series.items = [];
-    renderTabContent('series');
+    invalidateAllCaches();
+    await renderTabContent('series');
   } else {
     alert(result.error || '수정 실패');
   }
@@ -781,12 +790,11 @@ async function handleEditSeries(e, id) {
 
 async function deleteSeries(id) {
   if (!confirm('정말 삭제하시겠습니까?')) return;
-  
+
   const result = await adminDelete('series', id);
   if (result.message) {
-    window.adminSeriesLoaded = false;
-    adminData.series.items = [];
-    renderTabContent('series');
+    invalidateAllCaches();
+    await renderTabContent('series');
   } else {
     alert(result.error || '삭제 실패');
   }
@@ -904,9 +912,8 @@ async function handleAddCategory(e) {
   
   if (result.id) {
     closeModal();
-    window.adminCategoriesLoaded = false;
-    adminData.categories.items = [];
-    renderTabContent('categories');
+    invalidateAllCaches();
+    await renderTabContent('categories');
   } else {
     alert(result.error || '추가 실패');
   }
@@ -957,19 +964,18 @@ function openEditCategoryModal(id) {
 
 async function handleEditCategory(e, id) {
   e.preventDefault();
-  
+
   const name = document.getElementById('modal-name').value;
   const icon = document.getElementById('modal-icon').value;
   const sortOrder = parseInt(document.getElementById('modal-order').value) || 0;
   const animeIds = Array.from(document.querySelectorAll('input[name="animes"]:checked')).map(cb => parseInt(cb.value));
-  
+
   const result = await adminPut('categories', id, { name, icon, sortOrder, animeIds });
-  
+
   if (result.message) {
     closeModal();
-    window.adminCategoriesLoaded = false;
-    adminData.categories.items = [];
-    renderTabContent('categories');
+    invalidateAllCaches();
+    await renderTabContent('categories');
   } else {
     alert(result.error || '수정 실패');
   }
@@ -977,12 +983,11 @@ async function handleEditCategory(e, id) {
 
 async function deleteCategory(id) {
   if (!confirm('정말 삭제하시겠습니까?')) return;
-  
+
   const result = await adminDelete('categories', id);
   if (result.message) {
-    window.adminCategoriesLoaded = false;
-    adminData.categories.items = [];
-    renderTabContent('categories');
+    invalidateAllCaches();
+    await renderTabContent('categories');
   } else {
     alert(result.error || '삭제 실패');
   }
@@ -1049,12 +1054,11 @@ async function renderUsersTab(container) {
 async function toggleAdmin(id, currentStatus) {
   const action = currentStatus ? '관리자 권한을 해제' : '관리자 권한을 부여';
   if (!confirm(`정말 ${action}하시겠습니까?`)) return;
-  
+
   const result = await adminPut('users', id, { isAdmin: !currentStatus });
   if (result.message) {
-    window.adminUsersLoaded = false;
-    adminData.users.items = [];
-    renderTabContent('users');
+    invalidateAllCaches();
+    await renderTabContent('users');
   } else {
     alert(result.error || '수정 실패');
   }
@@ -1066,15 +1070,14 @@ async function deleteUser(id) {
     alert('자기 자신은 삭제할 수 없습니다.');
     return;
   }
-  
+
   if (!confirm('정말 삭제하시겠습니까?')) return;
-  
+
   const result = await adminDelete('users', id);
   if (result.message) {
-    window.adminUsersLoaded = false;
-    adminData.users.items = [];
-    renderTabContent('users');
-    renderStats();
+    invalidateAllCaches();
+    await renderTabContent('users');
+    await renderStats();
   } else {
     alert(result.error || '삭제 실패');
   }
@@ -1142,13 +1145,12 @@ async function renderReviewsTab(container) {
 
 async function deleteReview(id) {
   if (!confirm('정말 삭제하시겠습니까? 댓글도 모두 삭제됩니다.')) return;
-  
+
   const result = await adminDelete('reviews', id);
   if (result.message) {
-    window.adminReviewsLoaded = false;
-    adminData.reviews.items = [];
-    renderTabContent('reviews');
-    renderStats();
+    invalidateAllCaches();
+    await renderTabContent('reviews');
+    await renderStats();
   } else {
     alert(result.error || '삭제 실패');
   }
