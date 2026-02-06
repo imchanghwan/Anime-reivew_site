@@ -61,6 +61,22 @@ function parseMarkdown(text) {
     return '\x00IC' + i + '\x00';
   });
 
+  // 3) 이미지를 추출하여 플레이스홀더로 치환 (& 이스케이프 전에 처리해야 URL 보존)
+  const images = [];
+  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(match, alt, url) {
+    const i = images.length;
+    images.push('<img src="' + url + '" alt="' + alt + '">');
+    return '\x00IMG' + i + '\x00';
+  });
+
+  // 4) 링크를 추출하여 플레이스홀더로 치환 (& 이스케이프 전에 처리해야 URL 보존)
+  const links = [];
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(match, label, url) {
+    const i = links.length;
+    links.push('<a href="' + url + '" target="_blank" rel="noopener">' + label + '</a>');
+    return '\x00LNK' + i + '\x00';
+  });
+
   let html = text
     // & 이스케이프
     .replace(/&/g, '&amp;')
@@ -84,11 +100,7 @@ function parseMarkdown(text) {
     // 순서 있는 리스트
     .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
     // 가로선
-    .replace(/^---$/gm, '<hr>')
-    // 이미지 (링크보다 먼저 처리)
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
-    // 링크
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    .replace(/^---$/gm, '<hr>');
 
   // 테이블 파싱 (줄바꿈을 <br>로 바꾸기 전에 처리)
   html = html.replace(/^(\|.+\|)\n(\|[\s\-:| ]+\|)\n((?:\|.+\|\n?)+)/gm, function(match) {
@@ -139,14 +151,24 @@ function parseMarkdown(text) {
   // 연속된 blockquote 병합
   html = html.replace(/<\/blockquote><br><blockquote>/g, '<br>');
 
-  // 3) 인라인 코드 복원
+  // 5) 인라인 코드 복원
   inlineCodes.forEach(function(code, i) {
     html = html.split('\x00IC' + i + '\x00').join(code);
   });
 
-  // 4) 코드 블록 복원
+  // 6) 코드 블록 복원
   codeBlocks.forEach(function(code, i) {
     html = html.split('\x00CB' + i + '\x00').join(code);
+  });
+
+  // 7) 이미지 복원
+  images.forEach(function(img, i) {
+    html = html.split('\x00IMG' + i + '\x00').join(img);
+  });
+
+  // 8) 링크 복원
+  links.forEach(function(link, i) {
+    html = html.split('\x00LNK' + i + '\x00').join(link);
   });
 
   return html;
