@@ -2956,6 +2956,8 @@ a {
   font-size: 1.25rem;
   font-weight: 600;
   margin: var(--space-md) 0 var(--space-sm);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .markdown-body h4 {
