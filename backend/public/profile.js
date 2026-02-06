@@ -212,12 +212,10 @@ async function handleProfileSubmit(e) {
   }
   
   const result = await updateProfile(user.id, formData);
-  
-  if (result.message) {
-    // 로컬 유저 정보 업데이트
-    user.nickname = nickname;
-    user.profileImage = result.profileImage || user.profileImage;
-    setUser(user);
+
+  if (result.message && result.user) {
+    // 서버에서 반환한 최신 유저 정보로 localStorage 업데이트
+    setUser(result.user);
     selectedImageFile = null;
     renderAuthHeader();
     alert('프로필이 수정되었습니다.');
@@ -247,8 +245,10 @@ async function handlePasswordSubmit(e) {
   formData.append('newPassword', newPassword);
   
   const result = await updateProfile(user.id, formData);
-  
-  if (result.message) {
+
+  if (result.message && result.user) {
+    // 서버에서 반환한 최신 유저 정보로 localStorage 업데이트
+    setUser(result.user);
     alert('비밀번호가 변경되었습니다.');
     document.getElementById('password-form').reset();
   } else {

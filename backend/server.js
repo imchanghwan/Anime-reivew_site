@@ -113,13 +113,25 @@ app.post('/api/login', (req, res) => {
 app.put('/api/users/:id', upload.single('profileImage'), (req, res) => {
   const { id } = req.params;
   const { nickname, currentPassword, newPassword } = req.body;
-  
+
   // 프로필 이미지 경로 결정
   let profileImagePath = req.body.existingProfileImage || ''; // 기존 이미지 유지용
   if (req.file) {
     profileImagePath = `/uploads/${req.file.filename}`;
   }
-  
+
+  // 업데이트 후 유저 정보 반환 헬퍼
+  const returnUpdatedUser = () => {
+    db.get(
+      `SELECT id, username, nickname, profile_image as profileImage, is_admin as isAdmin FROM users WHERE id = ?`,
+      [id],
+      (err, user) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: '수정 완료', user });
+      }
+    );
+  };
+
   // 비밀번호 변경 시 현재 비밀번호 확인
   if (newPassword) {
     db.get(`SELECT password FROM users WHERE id = ?`, [id], (err, row) => {
@@ -128,13 +140,13 @@ app.put('/api/users/:id', upload.single('profileImage'), (req, res) => {
       if (row.password !== currentPassword) {
         return res.status(403).json({ error: '현재 비밀번호가 틀렸습니다' });
       }
-      
+
       db.run(
         `UPDATE users SET nickname = ?, profile_image = ?, password = ? WHERE id = ?`,
         [nickname, profileImagePath, newPassword, id],
         function(err) {
           if (err) return res.status(500).json({ error: err.message });
-          res.json({ message: '수정 완료', profileImage: profileImagePath });
+          returnUpdatedUser();
         }
       );
     });
@@ -144,7 +156,7 @@ app.put('/api/users/:id', upload.single('profileImage'), (req, res) => {
       [nickname, profileImagePath, id],
       function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: '수정 완료', profileImage: profileImagePath });
+        returnUpdatedUser();
       }
     );
   }
