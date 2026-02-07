@@ -398,11 +398,16 @@ app.get('/api/recent-activity', (req, res) => {
             MAX(
               IFNULL(r.created_at, ''),
               IFNULL(c.created_at, ''),
-              IFNULL(rv.created_at, '')
+              IFNULL(rv.created_at, ''),
+              IFNULL(cv.created_at, '')
             ) as lastActivity,
             AVG(r2.rating) as avgRating
      FROM anime a
+     LEFT JOIN reviews r ON a.id = r.anime_id
      LEFT JOIN reviews r2 ON a.id = r2.anime_id
+     LEFT JOIN comments c ON r.id = c.review_id
+     LEFT JOIN review_votes rv ON r.id = rv.review_id
+     LEFT JOIN comment_votes cv ON c.id = cv.comment_id
      GROUP BY a.id
      HAVING lastActivity != ''
      ORDER BY lastActivity DESC
