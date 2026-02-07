@@ -78,7 +78,6 @@ function parseMarkdown(text) {
   });
 
   let html = text
-    // & 이스케이프
     .replace(/&/g, '&amp;')
     // 헤더 (### > ## > #)
     .replace(/^### (.+)$/gm, '<h4>$1</h4>')

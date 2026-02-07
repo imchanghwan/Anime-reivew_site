@@ -506,8 +506,8 @@ function handleAnimeSearch(query) {
         <a href="/anime.html?id=${a.id}" class="search-result-item">
           <img src="${a.coverImage || ''}" alt="" class="search-result-img">
           <div class="search-result-info">
-            <span class="search-result-title">${a.title}</span>
             ${a.tier ? `<span class="tier tier-${a.tier.toLowerCase()} tier-small">${a.tier}</span>` : ''}
+            <span class="search-result-title">${a.title}</span>
           </div>
         </a>
       `).join('');

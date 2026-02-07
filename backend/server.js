@@ -333,7 +333,7 @@ app.get('/api/featured', (req, res) => {
     LEFT JOIN reviews r ON a.id = r.anime_id
     GROUP BY a.id
     HAVING reviewCount > 0
-    ORDER BY avgRating DESC
+    ORDER BY avgRating DESC, reviewCount DESC
     LIMIT 3`,
     [],
     (err, rows) => {
@@ -367,7 +367,7 @@ app.get('/api/featured', (req, res) => {
             reviews.forEach(r => {
               tierCounts[r.tier] = (tierCounts[r.tier] || 0) + 1;
             });
-            const topTier = Object.entries(tierCounts).sort((x, y) => y[1] - x[1])[0]?.[0] || 'A';
+            const topTier = Object.entries(tierCounts).sort((x, y) => y[1] - x[1])[0]?.[0] || null;
             
             // 익명 처리
             const reviewerName = randomReview ? 
@@ -402,10 +402,7 @@ app.get('/api/recent-activity', (req, res) => {
             ) as lastActivity,
             AVG(r2.rating) as avgRating
      FROM anime a
-     LEFT JOIN reviews r ON a.id = r.anime_id
      LEFT JOIN reviews r2 ON a.id = r2.anime_id
-     LEFT JOIN comments c ON r.id = c.review_id
-     LEFT JOIN review_votes rv ON r.id = rv.review_id
      GROUP BY a.id
      HAVING lastActivity != ''
      ORDER BY lastActivity DESC
@@ -433,7 +430,7 @@ app.get('/api/recent-activity', (req, res) => {
           
           const result = rows.map(a => {
             const tiers = tierMap[a.id] || {};
-            const topTier = Object.entries(tiers).sort((x, y) => y[1] - x[1])[0]?.[0] || 'A';
+            const topTier = Object.entries(tiers).sort((x, y) => y[1] - x[1])[0]?.[0] || null;
             return {
               id: a.id,
               title: a.title,
@@ -565,7 +562,7 @@ app.get('/api/categories', (req, res) => {
                 reviews.forEach(r => {
                   tierCounts[r.tier] = (tierCounts[r.tier] || 0) + 1;
                 });
-                const topTier = Object.entries(tierCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'A';
+                const topTier = Object.entries(tierCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
                 
                 // 익명 처리
                 const reviewerName = randomReview ? 
