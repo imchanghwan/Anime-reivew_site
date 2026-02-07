@@ -265,7 +265,7 @@ function renderTopReviewCard(review, rank) {
       </div>
       <div class="review-oneliner-row">
         <span class="tier tier-${review.tier.toLowerCase()} tier-card">${review.tier}</span>
-        ${review.content ? '<span class="has-content-badge">[본문]</span>' : ''}
+        ${review.content ? '<span class="content-badge">[본문]</span>' : ''}
         <p class="review-oneliner-card">"${review.oneLiner || ''}"</p>
       </div>
     </div>
@@ -297,7 +297,7 @@ function renderReviewCard(review) {
       </div>
       <div class="review-oneliner-row">
         <span class="tier tier-${review.tier.toLowerCase()} tier-card-small">${review.tier}</span>
-        ${review.content ? '<span class="has-content-badge">[본문]</span>' : ''}
+        ${review.content ? '<span class="content-badge">[본문]</span>' : ''}
         <p class="review-oneliner-card">"${review.oneLiner || ''}"</p>
       </div>
     </div>

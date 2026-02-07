@@ -2081,6 +2081,13 @@ a {
   flex-shrink: 0;
 }
 
+.content-badge {
+  font-size: 0.7rem;
+  color: var(--color-accent);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .top-review-card.rank-1 .tier-card {
   font-size: 0.875rem;
   padding: 2px var(--space-sm);
@@ -2949,6 +2956,8 @@ a {
   font-size: 1.25rem;
   font-weight: 600;
   margin: var(--space-md) 0 var(--space-sm);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .markdown-body h4 {
@@ -2971,17 +2980,18 @@ a {
 }
 
 .markdown-body code {
-  background: var(--color-bg);
+  background: var(--color-accent-light);
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 0.875em;
-  color: var(--color-accent);
+  color: var(--color-text-primary);
 }
 
 .markdown-body pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   padding: var(--space-md);
   border-radius: var(--radius-md);
   overflow-x: auto;
@@ -3033,6 +3043,27 @@ a {
   height: auto;
   border-radius: var(--radius-md);
   margin: var(--space-md) 0;
+}
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-md) 0;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--color-border);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.markdown-body th {
+  background: var(--color-bg);
+  font-weight: 600;
+}
+
+.markdown-body tbody tr:hover {
+  background: var(--color-bg);
 }
 
 /* ========================================

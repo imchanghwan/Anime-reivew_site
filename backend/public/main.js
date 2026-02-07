@@ -278,27 +278,27 @@ async function handleRegister(e) {
 // DOM - Featured Card
 // ============================================
 function createFeaturedCard(anime) {
-  const tierClass = anime.tier ? `tier-${anime.tier.toLowerCase()}` : '';
+  const hasTier = anime.tier && anime.reviewCount > 0;
+  const tierClass = hasTier ? `tier-${anime.tier.toLowerCase()}` : '';
   const reviewerText = anime.reviewer ? ` - ${anime.reviewer}` : '';
-  const quoteText = anime.oneLiner ? `"${anime.oneLiner}"${reviewerText}` : '';
-  
+
   const card = document.createElement('article');
   card.className = 'featured-card';
-  
+
   card.innerHTML = `
     <div class="featured-poster">
       <img src="${anime.coverImage || ''}" alt="${anime.title}">
     </div>
     <div class="featured-content">
       <div class="featured-header">
-        ${anime.tier ? `<span class="tier ${tierClass}">${anime.tier}</span>` : ''}
+        ${hasTier ? `<span class="tier ${tierClass}">${anime.tier}</span>` : ''}
         <h3 class="featured-title">${anime.title}</h3>
         <div class="featured-rating">
           <span class="star">★</span>
-          <span class="rating-value">${anime.rating}</span>
+          <span class="rating-value">${anime.rating || 0}</span>
         </div>
       </div>
-      ${quoteText ? `<p class="featured-quote">${quoteText}</p>` : ''}
+      ${anime.oneLiner ? `<p class="featured-quote">"${anime.oneLiner}"${reviewerText}</p>` : ''}
     </div>
   `;
   
@@ -313,22 +313,23 @@ function createFeaturedCard(anime) {
 // DOM - List Card
 // ============================================
 function createListCard(anime) {
-  const tierClass = anime.tier ? `tier-${anime.tier.toLowerCase()}` : '';
-  
+  const hasTier = anime.tier && anime.reviewCount > 0;
+  const tierClass = hasTier ? `tier-${anime.tier.toLowerCase()}` : '';
+
   const card = document.createElement('article');
   card.className = 'list-card';
-  
+
   card.innerHTML = `
     <div class="list-poster">
       <img src="${anime.coverImage || ''}" alt="${anime.title}">
-      ${anime.tier ? `<span class="list-tier ${tierClass}">${anime.tier}</span>` : ''}
+      ${hasTier ? `<span class="list-tier ${tierClass}">${anime.tier}</span>` : ''}
     </div>
     <div class="list-info">
       <div class="list-header">
         <h4 class="list-title">${anime.title}</h4>
         <div class="list-rating">
           <span class="star">★</span>
-          <span>${anime.rating}</span>
+          <span>${anime.rating || 0}</span>
         </div>
       </div>
       ${anime.oneLiner ? `<p class="list-quote">"${anime.oneLiner}"</p>` : ''}
