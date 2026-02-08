@@ -278,7 +278,7 @@ async function handleRegister(e) {
 // DOM - Featured Card
 // ============================================
 function createFeaturedCard(anime) {
-  const hasTier = anime.tier && anime.reviewCount > 0;
+  const hasTier = !!anime.tier;
   const tierClass = hasTier ? `tier-${anime.tier.toLowerCase()}` : '';
   const reviewerText = anime.reviewer ? ` - ${anime.reviewer}` : '';
 
@@ -313,7 +313,7 @@ function createFeaturedCard(anime) {
 // DOM - List Card
 // ============================================
 function createListCard(anime) {
-  const hasTier = anime.tier && anime.reviewCount > 0;
+  const hasTier = !!anime.tier;
   const tierClass = hasTier ? `tier-${anime.tier.toLowerCase()}` : '';
 
   const card = document.createElement('article');
